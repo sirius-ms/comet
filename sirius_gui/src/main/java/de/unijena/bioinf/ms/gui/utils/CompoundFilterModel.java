@@ -21,6 +21,7 @@ package de.unijena.bioinf.ms.gui.utils;/*
 import de.unijena.bioinf.ChemistryBase.chem.FormulaConstraints;
 import de.unijena.bioinf.ChemistryBase.chem.PrecursorIonType;
 import de.unijena.bioinf.ms.frontend.core.SiriusPCS;
+import de.unijena.bioinf.ms.gui.utils.asms.CMLFilterModelOptions;
 import de.unijena.bioinf.ms.nightsky.sdk.model.DataQuality;
 import de.unijena.bioinf.ms.nightsky.sdk.model.SearchableDatabase;
 import lombok.Getter;
@@ -112,6 +113,9 @@ public class CompoundFilterModel implements SiriusPCS {
     @Getter
     private final double maxConfidence;
 
+    @Getter
+    private CMLFilterModelOptions cmlFilterOptions = CMLFilterModelOptions.disabled();
+
 
     public CompoundFilterModel() {
         this(0, 5000d, 0, 10000d, 0, 1d, 0, Integer.MAX_VALUE);
@@ -194,6 +198,20 @@ public class CompoundFilterModel implements SiriusPCS {
         ElementFilter oldValue = elementFilter;
         elementFilter = value;
         pcs.firePropertyChange("setElementFilter", oldValue, value);
+    }
+
+    public void setCMLFilterOptions(@NotNull CMLFilterModelOptions value) {
+        CMLFilterModelOptions oldValue = cmlFilterOptions;
+        this.cmlFilterOptions = value;
+        this.pcs.firePropertyChange("setCMLFilterOptions", oldValue, value);
+    }
+
+    public boolean isCmlMs1FilterActive() {
+        return this.cmlFilterOptions.isMs1FilterActive();
+    }
+
+    public boolean isCmlMs2FilterActive() {
+        return this.cmlFilterOptions.isMs2FilterActive();
     }
 
     public void setHasMs1(boolean hasMs1) {
