@@ -28,6 +28,7 @@ import de.unijena.bioinf.ms.gui.actions.DeleteExperimentAction;
 import de.unijena.bioinf.ms.gui.actions.SiriusActions;
 import de.unijena.bioinf.ms.gui.compute.DBSelectionList;
 import de.unijena.bioinf.ms.gui.compute.jjobs.Jobs;
+import de.unijena.bioinf.ms.gui.dialogs.asms.CMLFilterPanel;
 import de.unijena.bioinf.ms.gui.mainframe.instance_panel.CompoundList;
 import de.unijena.bioinf.ms.gui.utils.*;
 import de.unijena.bioinf.ms.gui.utils.jCheckboxList.CheckBoxListItem;
@@ -70,6 +71,8 @@ public class CompoundFilterOptionsDialog extends JDialog implements ActionListen
 
     private final QualityFilterPanel overallQualityPanel;
     private final List<QualityFilterPanel> qualityPanels;
+
+    private final CMLFilterPanel cmlFilterPanel;
 
 
     final SiriusGui gui;
@@ -274,6 +277,14 @@ public class CompoundFilterOptionsDialog extends JDialog implements ActionListen
             group.add(Box.createHorizontalGlue());
             generalParameters.add(group);
 
+        }
+
+        // combinatorial molecule library filters
+        {
+            generalParameters.add(Box.createVerticalStrut(5));
+            generalParameters.add(new JXTitledSeparator("COMET Filter for Affinity selection-mass spectrometry"));
+            this.cmlFilterPanel = new CMLFilterPanel(this.filterModel);
+            generalParameters.add(this.cmlFilterPanel);
         }
 
         reset = new JButton("Reset");
