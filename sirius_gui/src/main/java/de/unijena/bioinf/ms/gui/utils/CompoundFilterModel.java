@@ -201,7 +201,7 @@ public class CompoundFilterModel implements SiriusPCS {
     }
 
     public void setCMLFilterOptions(@NotNull CMLFilterModelOptions value) {
-        CMLFilterModelOptions oldValue = cmlFilterOptions;
+        CMLFilterModelOptions oldValue = this.cmlFilterOptions;
         this.cmlFilterOptions = value;
         this.pcs.firePropertyChange("setCMLFilterOptions", oldValue, value);
     }
@@ -349,6 +349,7 @@ public class CompoundFilterModel implements SiriusPCS {
         adducts = Set.of();
         setHasMs1(false);
         setHasMsMs(false);
+        setCMLFilterOptions(CMLFilterModelOptions.disabled());
     }
 
     public enum LipidFilter {

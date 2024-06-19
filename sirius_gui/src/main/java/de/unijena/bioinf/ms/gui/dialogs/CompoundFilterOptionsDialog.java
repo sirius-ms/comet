@@ -381,7 +381,7 @@ public class CompoundFilterOptionsDialog extends JDialog implements ActionListen
         filterModel.setDbFilter(new CompoundFilterModel.DbFilter(searchDBList.checkBoxList.getCheckedItems(),
                 ((SpinnerNumberModel) candidateSpinner.getModel()).getNumber().intValue()));
 
-        //this.cmlFilterPanel.applyToModel(this.filterModel); todo
+        this.cmlFilterPanel.applyToModel(filterModel);
 
         saveTextFilter();
     }
