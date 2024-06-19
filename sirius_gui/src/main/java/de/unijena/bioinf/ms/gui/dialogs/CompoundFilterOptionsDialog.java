@@ -458,6 +458,7 @@ public class CompoundFilterOptionsDialog extends JDialog implements ActionListen
         deleteSelection.setSelected(false);
         hasMs1.setSelected(false);
         hasMsMs.setSelected(false);
+        cmlFilterPanel.reset();
     }
 
     private void resetSpinnerValues() {

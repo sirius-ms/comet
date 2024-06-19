@@ -2,8 +2,6 @@ package de.unijena.bioinf.ms.gui.utils.asms;
 
 import lombok.Getter;
 
-import java.util.Optional;
-
 @Getter
 public class CMLFilterModelOptions {
 
@@ -24,18 +22,6 @@ public class CMLFilterModelOptions {
     private final boolean isPeakMatchingFilterEnabled;
 
 
-    private String currentPathToBBFile;
-    private String currentScaffoldMf;
-    private String currentMatchedPeaksOutputFilePath;
-
-    private int currentMinMatchingPeaks;
-    private int currentNumTopPeaks;
-    private int currentNumAllowedHydrogenShifts;
-    private double currentMs2Deviation;
-    private double currentMs1Deviation;
-    private boolean currentIsPeakMatchingFilterEnabled;
-
-
     public CMLFilterModelOptions(String pathToBBFile, String scaffoldMf, String matchedPeaksOutputFilePath, int minMatchingPeaks, int numTopPeaks, int numAllowedHydrogenShifts, double ms1Deviation, double ms2Deviation, boolean isPeakMatchingFilterEnabled){
         this.pathToBBFile = pathToBBFile;
         this.scaffoldMf = scaffoldMf;
@@ -46,16 +32,6 @@ public class CMLFilterModelOptions {
         this.ms1Deviation = ms1Deviation;
         this.ms2Deviation = ms2Deviation;
         this.isPeakMatchingFilterEnabled = isPeakMatchingFilterEnabled;
-
-        this.currentPathToBBFile = pathToBBFile;
-        this.currentScaffoldMf = scaffoldMf;
-        this.currentMatchedPeaksOutputFilePath = matchedPeaksOutputFilePath;
-        this.currentMinMatchingPeaks = minMatchingPeaks;
-        this.currentNumTopPeaks = numTopPeaks;
-        this.currentNumAllowedHydrogenShifts = numAllowedHydrogenShifts;
-        this.currentMs1Deviation = ms1Deviation;
-        this.currentMs2Deviation = ms2Deviation;
-        this.currentIsPeakMatchingFilterEnabled = isPeakMatchingFilterEnabled;
     }
 
     public static CMLFilterModelOptions disabled(){
@@ -63,11 +39,10 @@ public class CMLFilterModelOptions {
     }
 
     public boolean isMs1FilterActive(){
-        return this.currentPathToBBFile != null && !Optional.ofNullable(this.pathToBBFile).orElse("").equals(this.currentPathToBBFile);
+        return this.pathToBBFile != null && !this.pathToBBFile.isEmpty();
     }
 
     public boolean isMs2FilterActive(){
-        return this.isCurrentIsPeakMatchingFilterEnabled();
+        return this.isPeakMatchingFilterEnabled();
     }
-
 }

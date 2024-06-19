@@ -45,7 +45,7 @@ public class CMLFilterPanel extends JPanel {
 
             // MS1 deviation:
             {
-                this.ms1DevSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getCurrentMs1Deviation(), 0, Double.POSITIVE_INFINITY, 1d));
+                this.ms1DevSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getMs1Deviation(), 0, Double.POSITIVE_INFINITY, 1d));
                 params.addNamed("MS1 mass accuracy (ppm):", this.ms1DevSpinner);
             }
         }
@@ -66,8 +66,8 @@ public class CMLFilterPanel extends JPanel {
 
             // Params for the minimal and maximal number of peaks to consider:
             {
-                this.minPeaksSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getCurrentMinMatchingPeaks(), 0, cmlFilterModel.getCurrentNumTopPeaks(), 1));
-                this.numTopPeaksSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getCurrentNumTopPeaks(), 0, Integer.MAX_VALUE, 1));
+                this.minPeaksSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getMinMatchingPeaks(), 0, cmlFilterModel.getNumTopPeaks(), 1));
+                this.numTopPeaksSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getNumTopPeaks(), 0, Integer.MAX_VALUE, 1));
                 this.numTopPeaksSpinner.addChangeListener(new NumTopPeaksListener());
 
                 Box numMatchingPeaksBox = Box.createHorizontalBox();
@@ -79,8 +79,8 @@ public class CMLFilterPanel extends JPanel {
 
             // Parameters for the mass accuracy and the location of the output file:
             {
-                this.numHydrogenShiftsSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getCurrentNumAllowedHydrogenShifts(), 0, Integer.MAX_VALUE, 1));
-                this.ms2DevSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getCurrentMs2Deviation(), 0, Double.POSITIVE_INFINITY, 1d));
+                this.numHydrogenShiftsSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getNumAllowedHydrogenShifts(), 0, Integer.MAX_VALUE, 1));
+                this.ms2DevSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getMs2Deviation(), 0, Double.POSITIVE_INFINITY, 1d));
                 this.outputFileSelectionPanel = new FileChooserPanel();
 
                 Box box = Box.createHorizontalBox();
@@ -118,6 +118,19 @@ public class CMLFilterPanel extends JPanel {
         CMLFilterModelOptions cmlFilterOptions = new CMLFilterModelOptions(pathToBBFile, scaffoldMf, outputPath, minMatchingPeaks,
                 numTopPeaks, numHydrogenShifts, ms1Dev, ms2Dev, isPeakMatchingFilterEnabled);
         filterModel.setCMLFilterOptions(cmlFilterOptions);
+    }
+
+    public void reset(){
+        final CMLFilterModelOptions defaultOptions = CMLFilterModelOptions.disabled();
+        this.bbFileSelectionPanel.field.setText(defaultOptions.getPathToBBFile());
+        this.outputFileSelectionPanel.field.setText(defaultOptions.getMatchedPeaksOutputFilePath());
+        this.scaffoldMolFormulaField.setText(defaultOptions.getScaffoldMf());
+        this.minPeaksSpinner.setValue(defaultOptions.getMinMatchingPeaks());
+        this.numTopPeaksSpinner.setValue(defaultOptions.getNumTopPeaks());
+        this.numHydrogenShiftsSpinner.setValue(defaultOptions.getNumAllowedHydrogenShifts());
+        this.ms1DevSpinner.setValue(defaultOptions.getMs1Deviation());
+        this.ms2DevSpinner.setValue(defaultOptions.getMs2Deviation());
+        this.peakMatchingFilterCheckBox.setSelected(defaultOptions.isPeakMatchingFilterEnabled());
     }
 
     private double getDoubleValue(JSpinner spinner){
