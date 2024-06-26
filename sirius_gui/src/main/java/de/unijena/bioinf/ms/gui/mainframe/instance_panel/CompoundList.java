@@ -26,6 +26,14 @@ import ca.odell.glazedlists.matchers.MatcherEditor;
 import ca.odell.glazedlists.swing.DefaultEventSelectionModel;
 import ca.odell.glazedlists.swing.GlazedListsSwing;
 import ca.odell.glazedlists.swing.TextComponentMatcherEditor;
+import de.unijena.bioinf.ChemistryBase.chem.MolecularFormula;
+import de.unijena.bioinf.ChemistryBase.chem.utils.UnknownElementException;
+import de.unijena.bioinf.ChemistryBase.ms.Ms2Experiment;
+import de.unijena.bioinf.datastructures.BuildingBlock;
+import de.unijena.bioinf.datastructures.CMLCandidates;
+import de.unijena.bioinf.datastructures.OrderedCombinatorialMoleculeLibrary;
+import de.unijena.bioinf.datastructures.Scaffold;
+import de.unijena.bioinf.io.BuildingBlockReader;
 import de.unijena.bioinf.ms.gui.SiriusGui;
 import de.unijena.bioinf.ms.gui.dialogs.CompoundFilterOptionsDialog;
 import de.unijena.bioinf.ms.gui.utils.*;
@@ -37,6 +45,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -59,6 +69,8 @@ public class CompoundList {
     final DefaultEventSelectionModel<InstanceBean> compountListSelectionModel;
     final BackgroundJJobMatcheEditor<InstanceBean> backgroundFilterMatcher;
     final private MatcherEditorWithOptionalInvert<InstanceBean> compoundListMatchEditor;
+
+    private OrderedCombinatorialMoleculeLibrary cmlLibrary;
 
     private final Queue<ExperimentListChangeListener> listeners = new ConcurrentLinkedQueue<>();
 
@@ -85,7 +97,7 @@ public class CompoundList {
         }, false));
 
         //additional filter based on specific parameters
-        compoundFilterModel = new CompoundFilterModel();
+        compoundFilterModel = new CompoundFilterModel(this);
         listOfFilters.add(new CompoundFilterMatcherEditor(new CompoundFilterMatcher(gui.getProperties(), compoundFilterModel)));
         //combined filters
         CompositeMatcherEditor<InstanceBean> compositeMatcherEditor = new CompositeMatcherEditor<>(listOfFilters);
@@ -175,5 +187,27 @@ public class CompoundList {
 
     public EventList<InstanceBean> getCompoundList() {
         return compoundList;
+    }
+
+    public void initCmlLibraryAndRemoveCMLAnnotations(String pathToBBFile, String scaffoldMf){
+        // 1. Initialize the combinatorial molecule library:
+        if (pathToBBFile != null) {
+            try {
+                final File bbFile = new File(pathToBBFile);
+                final BuildingBlock[][] buildingBlocks = BuildingBlockReader.readBuildingBlocks(bbFile);
+                final Scaffold scaffold = new Scaffold(scaffoldMf != null ? MolecularFormula.parse(scaffoldMf) : MolecularFormula.emptyFormula(), null);
+                cmlLibrary = new OrderedCombinatorialMoleculeLibrary(bbFile.getName().replaceFirst(".csv", ""), buildingBlocks, scaffold);
+            } catch (UnknownElementException | IOException e) {
+                e.printStackTrace();
+                cmlLibrary = OrderedCombinatorialMoleculeLibrary.emptyLibrary();
+            }
+        } else {
+            cmlLibrary = OrderedCombinatorialMoleculeLibrary.emptyLibrary();
+        }
+         // 2. Delete previous Ms2Experiment annotation of CMLCandidates.class:
+        compoundList.forEach(item -> {
+            final Ms2Experiment exp = item.asMs2Experiment();
+            exp.removeAnnotation(CMLCandidates.class);
+        });
     }
 }

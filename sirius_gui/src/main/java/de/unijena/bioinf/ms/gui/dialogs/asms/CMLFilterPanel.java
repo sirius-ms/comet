@@ -10,6 +10,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.util.Optional;
 
 /**
  * Compound filter options for measured combinatorial molecule libraries (especially for affinity selection experiments).
@@ -105,9 +106,9 @@ public class CMLFilterPanel extends JPanel {
     }
 
     public void applyToModel(@NotNull CompoundFilterModel filterModel){
-        final String pathToBBFile = this.bbFileSelectionPanel.getFilePath();
-        final String outputPath = this.outputFileSelectionPanel.getFilePath();
-        final String scaffoldMf = this.scaffoldMolFormulaField.getText();
+        final String pathToBBFile = Optional.ofNullable(this.bbFileSelectionPanel.getFilePath()).map(String::strip).orElse(null);
+        final String outputPath = Optional.ofNullable(this.outputFileSelectionPanel.getFilePath()).map(String::strip).orElse(null);
+        final String scaffoldMf = this.getStringValue(this.scaffoldMolFormulaField); // return null if text is null or consists of only whitespaces
         final boolean isPeakMatchingFilterEnabled = this.peakMatchingFilterCheckBox.isSelected();
         final int minMatchingPeaks = this.getIntValue(this.minPeaksSpinner);
         final int numTopPeaks = this.getIntValue(this.numTopPeaksSpinner);
@@ -139,6 +140,13 @@ public class CMLFilterPanel extends JPanel {
 
     private int getIntValue(JSpinner spinner){
         return ((SpinnerNumberModel) spinner.getModel()).getNumber().intValue();
+    }
+
+    private String getStringValue(JTextField textField){
+        final String txt = textField.getText();
+        if(txt == null || txt.isBlank())
+            return null;
+        return txt.strip();
     }
 
     private class NumTopPeaksListener implements ChangeListener {

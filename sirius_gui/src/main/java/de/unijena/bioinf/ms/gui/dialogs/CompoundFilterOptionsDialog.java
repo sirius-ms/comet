@@ -406,7 +406,7 @@ public class CompoundFilterOptionsDialog extends JDialog implements ActionListen
     private void deleteSelectedCompoundsAndResetFilter() {
 
         // create deletion matcher
-        CompoundFilterModel tmpModel = new CompoundFilterModel();
+        CompoundFilterModel tmpModel = new CompoundFilterModel(gui.getMainFrame().getCompoundList());
         applyToModel(tmpModel);
         CompoundFilterMatcher matcher = new CompoundFilterMatcher(gui.getProperties(), tmpModel);
         boolean inverted = invertFilter.isSelected();

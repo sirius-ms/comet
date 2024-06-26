@@ -17,6 +17,7 @@ dependencies {
     api "de.unijena.bioinf:jjobs-swing:$jjobs_version"
     // will be ported to sirius_cli later
     api "de.unijena.bioinf.ms:combinatorial_fragmenter:$siriusVersion"
+    api "de.unijena.bioinf.ms:affinity_selection_ms:$siriusVersion"
 //external
     api "net.sf.opencsv:opencsv:2.3"
     api "org.swinglabs.swingx:swingx-all:1.6.5-1"

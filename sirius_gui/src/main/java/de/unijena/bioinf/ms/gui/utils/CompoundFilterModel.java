@@ -21,6 +21,7 @@ package de.unijena.bioinf.ms.gui.utils;/*
 import de.unijena.bioinf.ChemistryBase.chem.FormulaConstraints;
 import de.unijena.bioinf.ChemistryBase.chem.PrecursorIonType;
 import de.unijena.bioinf.ms.frontend.core.SiriusPCS;
+import de.unijena.bioinf.ms.gui.mainframe.instance_panel.CompoundList;
 import de.unijena.bioinf.ms.gui.utils.asms.CMLFilterModelOptions;
 import de.unijena.bioinf.ms.nightsky.sdk.model.DataQuality;
 import de.unijena.bioinf.ms.nightsky.sdk.model.SearchableDatabase;
@@ -30,6 +31,8 @@ import org.apache.commons.text.CaseUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.*;
 
 /**
@@ -116,9 +119,11 @@ public class CompoundFilterModel implements SiriusPCS {
     @Getter
     private CMLFilterModelOptions cmlFilterOptions = CMLFilterModelOptions.disabled();
 
+    private final CompoundList compoundList;
 
-    public CompoundFilterModel() {
-        this(0, 5000d, 0, 10000d, 0, 1d, 0, Integer.MAX_VALUE);
+
+    public CompoundFilterModel(CompoundList compoundList) {
+        this(compoundList, 0, 5000d, 0, 10000d, 0, 1d, 0, Integer.MAX_VALUE);
     }
 
 
@@ -133,7 +138,10 @@ public class CompoundFilterModel implements SiriusPCS {
      * @param minConfidence
      * @param maxConfidence
      */
-    public CompoundFilterModel(double minMz, double maxMz, double minRt, double maxRt, double minConfidence, double maxConfidence, int minIsotopePeaks, int maxIsotopePeaks) {
+    public CompoundFilterModel(CompoundList compoundList, double minMz, double maxMz, double minRt, double maxRt, double minConfidence, double maxConfidence, int minIsotopePeaks, int maxIsotopePeaks) {
+        this.compoundList = compoundList;
+        this.addPropertyChangeListener(new CMLOptionsChangeListener());
+
         this.currentMinMz = minMz;
         this.currentMaxMz = maxMz;
         this.currentMinRt = minRt;
@@ -504,5 +512,29 @@ public class CompoundFilterModel implements SiriusPCS {
                     .toList();
         }
 
+    }
+
+    private class CMLOptionsChangeListener implements PropertyChangeListener {
+
+        @Override
+        public void propertyChange(PropertyChangeEvent evt) {
+            if(evt.getPropertyName().equals("setCMLFilterOptions")){
+                final CMLFilterModelOptions oldOptions = (CMLFilterModelOptions) evt.getOldValue();
+                final CMLFilterModelOptions newOptions = (CMLFilterModelOptions) evt.getNewValue();
+
+                if(this.propertyChanged(oldOptions.getPathToBBFile(), newOptions.getPathToBBFile()) ||
+                        this.propertyChanged(oldOptions.getScaffoldMf(), newOptions.getScaffoldMf())){
+                    compoundList.initCmlLibraryAndRemoveCMLAnnotations(newOptions.getPathToBBFile(), newOptions.getScaffoldMf());
+                }
+            }
+        }
+
+        private boolean propertyChanged(String oldValue, String newValue){
+            if(oldValue == null){
+                return newValue != null;
+            }else{
+                return !oldValue.equals(newValue);
+            }
+        }
     }
 }
