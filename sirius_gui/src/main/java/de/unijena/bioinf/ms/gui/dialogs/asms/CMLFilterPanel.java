@@ -34,8 +34,8 @@ public class CMLFilterPanel extends JPanel {
         {
             // Library params: BB file + scaffold molecular formula
             {
-                this.bbFileSelectionPanel = new FileChooserPanel();
-                this.scaffoldMolFormulaField = new JTextField();
+                this.bbFileSelectionPanel = new FileChooserPanel(Optional.ofNullable(cmlFilterModel.getPathToBBFile()).orElse(""));
+                this.scaffoldMolFormulaField = new JTextField(Optional.ofNullable(cmlFilterModel.getScaffoldMf()).orElse(""));
 
                 Box libSelBox = Box.createHorizontalBox();
                 libSelBox.add(new TwoColumnPanel("Building blocks:", bbFileSelectionPanel));
@@ -55,7 +55,7 @@ public class CMLFilterPanel extends JPanel {
         {
             // Params for enabling this filter
             {
-                this.peakMatchingFilterCheckBox = new JCheckBox("Enable peak matching filter");
+                this.peakMatchingFilterCheckBox = new JCheckBox("Enable peak matching filter", cmlFilterModel.isPeakMatchingFilterEnabled());
                 this.peakMatchingFilterCheckBox.addChangeListener(new PeakMatchingFilterCheckBoxListener());
 
                 params.add(Box.createVerticalStrut(5));
