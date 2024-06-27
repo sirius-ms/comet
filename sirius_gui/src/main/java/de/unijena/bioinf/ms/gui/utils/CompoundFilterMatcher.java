@@ -165,7 +165,7 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         final int numHydrogenShifts = cmlFilterOptions.getNumAllowedHydrogenShifts();
         final double HYDROGEN_MASS = MolecularFormula.getHydrogen().getMass();
 
-        final ArrayList<CMLMolecule> candidates = exp.getAnnotationOrThrow(CMLCandidates.class).getCandidates();
+        final ArrayList<CMLMolecule> candidates = exp.getAnnotation(CMLCandidates.class).orElse(new CMLCandidates(filterModel.getCompoundList().getCmlLibrary(), exp, cmlFilterOptions.getMs1Deviation())).getCandidates();
         final ArrayList<String> selectedOutputMatchedPeaks = new ArrayList<>();
         final int startPeakIdx = mergedPeaks.size() > numTopPeaks ? mergedPeaks.size() - numTopPeaks : 0;
         boolean foundMatchingCompound = false; // true -> there exists at least one candidate whose fragments match at least 'minMatchingPeaks'
@@ -190,7 +190,7 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
                                 isMatched = true;
                                 matchedPeaks++;
                             }
-                            matchedPeaksStrings.add(item.getName()+","+peak.getMass()+","+peak.getRelativeIntensity()+
+                            matchedPeaksStrings.add(item.getName()+","+peak.getMass()+","+peak.getRelativeIntensity()+","+
                                     candidate.getName()+","+fragment.getFragmentTypeString()+","+h);
                         }
                     }
@@ -208,7 +208,7 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
             final StringBuilder loggerStrBuilder = new StringBuilder();
             for (final String matchedPeaksString : selectedOutputMatchedPeaks) {
                 final String[] strArray = matchedPeaksString.split(",");
-                loggerStrBuilder.append("[feature_ID: ").append(strArray[0]).append(" | matched peaks: (").append(strArray[1])
+                loggerStrBuilder.append("[feature_ID: ").append(strArray[0]).append(" | matched peak: (").append(strArray[1])
                         .append(";").append(strArray[2]).append(") | compound: ").append(strArray[3]).append(" | fragment_ID: ")
                         .append(strArray[4]).append(" | H-shifts: ").append(strArray[5]).append("]\n");
                 fileStrBuilder.append(matchedPeaksString).append("\n");
