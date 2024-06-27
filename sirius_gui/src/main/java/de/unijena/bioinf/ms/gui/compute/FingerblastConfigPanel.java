@@ -83,6 +83,11 @@ public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOption
         JLabel confLabel = new JLabel("Confidence mode");
         additionalOptions.add(confLabel, confidenceModeBox);
 
+        JCheckBox epiRankingCheckBox = new JCheckBox();
+        epiRankingCheckBox.setSelected(false);
+        epiRankingCheckBox.setToolTipText("Rerank the structure candidates with EPIMETHEUS.");
+        additionalOptions.addNamed("Rank with EPIMETHEUS", epiRankingCheckBox);
+
         checkBoxPanel.setPreferredSize(new Dimension(confidenceModeBox.getPreferredSize().width, checkBoxPanel.getPreferredSize().height));  // Prevent resizing on unchecking checkbox
 
         add(new TextHeaderBoxPanel("General", additionalOptions));
@@ -97,6 +102,8 @@ public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOption
             }
             return "APPROXIMATE";
         });
+
+        parameterBindings.put("RankWithEpimetheus", () -> String.valueOf(epiRankingCheckBox.isSelected()));
 
         pubChemFallback.addActionListener(e -> {
             List.of(confLabel, confidenceModeBox).forEach(c -> c.setVisible(pubChemFallback.isSelected()));
