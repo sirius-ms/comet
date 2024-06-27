@@ -45,4 +45,8 @@ public class CMLFilterModelOptions {
     public boolean isMs2FilterActive(){
         return this.isPeakMatchingFilterEnabled();
     }
+
+    public boolean isOutputPathActive(){
+        return this.matchedPeaksOutputFilePath != null && !this.matchedPeaksOutputFilePath.isEmpty();
+    }
 }

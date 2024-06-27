@@ -70,6 +70,7 @@ public class CompoundList {
     final BackgroundJJobMatcheEditor<InstanceBean> backgroundFilterMatcher;
     final private MatcherEditorWithOptionalInvert<InstanceBean> compoundListMatchEditor;
 
+    @Getter
     private OrderedCombinatorialMoleculeLibrary cmlLibrary;
 
     private final Queue<ExperimentListChangeListener> listeners = new ConcurrentLinkedQueue<>();
@@ -205,6 +206,10 @@ public class CompoundList {
             cmlLibrary = OrderedCombinatorialMoleculeLibrary.emptyLibrary();
         }
          // 2. Delete previous Ms2Experiment annotation of CMLCandidates.class:
+        this.removeCMLAnnotations();
+    }
+
+    public void removeCMLAnnotations(){
         compoundList.forEach(item -> {
             final Ms2Experiment exp = item.asMs2Experiment();
             exp.removeAnnotation(CMLCandidates.class);

@@ -119,6 +119,7 @@ public class CompoundFilterModel implements SiriusPCS {
     @Getter
     private CMLFilterModelOptions cmlFilterOptions = CMLFilterModelOptions.disabled();
 
+    @Getter
     private final CompoundList compoundList;
 
 
@@ -220,6 +221,10 @@ public class CompoundFilterModel implements SiriusPCS {
 
     public boolean isCmlMs2FilterActive() {
         return this.cmlFilterOptions.isMs2FilterActive();
+    }
+
+    public boolean isCmlOutputPathActive(){
+        return this.cmlFilterOptions.isOutputPathActive();
     }
 
     public void setHasMs1(boolean hasMs1) {
@@ -525,6 +530,8 @@ public class CompoundFilterModel implements SiriusPCS {
                 if(this.propertyChanged(oldOptions.getPathToBBFile(), newOptions.getPathToBBFile()) ||
                         this.propertyChanged(oldOptions.getScaffoldMf(), newOptions.getScaffoldMf())){
                     compoundList.initCmlLibraryAndRemoveCMLAnnotations(newOptions.getPathToBBFile(), newOptions.getScaffoldMf());
+                } else if (this.propertyChanged(oldOptions.getMs1Deviation(), newOptions.getMs1Deviation())) {
+                    compoundList.removeCMLAnnotations();
                 }
             }
         }
@@ -535,6 +542,10 @@ public class CompoundFilterModel implements SiriusPCS {
             }else{
                 return !oldValue.equals(newValue);
             }
+        }
+
+        private boolean propertyChanged(double oldValue, double newValue){
+            return oldValue != newValue;
         }
     }
 }
