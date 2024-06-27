@@ -73,7 +73,7 @@ public class FingerblastOptions implements ToolChainOptions<FingerblastSubToolJo
         defaultConfigOptions.changeOption("ExpansiveSearchConfidenceMode.confidenceScoreSimilarityMode", expansiveSearchConfMode);
     }
 
-    @Option(names = {"-e, --epi"}, descriptionKey = "RankWithEpimetheus", description = {"Use the combinatorial fragmenter, Epimetheus, to rank the structure candidates."})
+    @Option(names = {"-e, --epi"}, descriptionKey = "RankWithEpimetheus", description = {"Use the combinatorial fragmenter, EPIMETHEUS, to rank the structure candidates."})
     public void setRankWithEpimetheus(DefaultParameter value) throws Exception {
         defaultConfigOptions.changeOption("RankWithEpimetheus", value);
     }
