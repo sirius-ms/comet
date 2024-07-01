@@ -32,7 +32,11 @@ import de.unijena.bioinf.ms.properties.PropertyManager;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,7 +47,7 @@ import java.util.stream.Collectors;
 //here we can show fingerid options. If it becomes to much, we can change this to a setting like tabbed pane
 public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOptions> {
     private final StructureSearchStrategy structureSearchStrategy;
-    private final JCheckBox pubChemFallback;
+    private final JCheckBox pubChemFallback, epiRankingCheckBox;
 
     protected final SiriusGui gui;
     protected final FormulaIDConfigPanel syncSource;
@@ -83,9 +87,10 @@ public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOption
         JLabel confLabel = new JLabel("Confidence mode");
         additionalOptions.add(confLabel, confidenceModeBox);
 
-        JCheckBox epiRankingCheckBox = new JCheckBox();
+        epiRankingCheckBox = new JCheckBox();
         epiRankingCheckBox.setSelected(false);
         epiRankingCheckBox.setToolTipText("Rerank the structure candidates with EPIMETHEUS.");
+        epiRankingCheckBox.addChangeListener(new EpiRankingCheckBoxListener());
         additionalOptions.addNamed("Rank with EPIMETHEUS", epiRankingCheckBox);
 
         checkBoxPanel.setPreferredSize(new Dimension(confidenceModeBox.getPreferredSize().width, checkBoxPanel.getPreferredSize().height));  // Prevent resizing on unchecking checkbox
@@ -121,6 +126,21 @@ public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOption
         } else {
             dbList.setItemEnabled(pubChemDB, true);
             dbList.setItemToolTip(pubChemDB, null);
+        }
+    }
+
+    private class EpiRankingCheckBoxListener implements ChangeListener {
+
+
+        @Override
+        public void stateChanged(ChangeEvent e) {
+            if(epiRankingCheckBox.isSelected()) {
+                pubChemFallback.setSelected(false);
+                pubChemFallback.setEnabled(false);
+            }else{
+                pubChemFallback.setSelected(true);
+                pubChemFallback.setEnabled(true);
+            }
         }
     }
 }
