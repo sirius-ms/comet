@@ -3,19 +3,19 @@
  *  This file is part of the SIRIUS library for analyzing MS and MS/MS data
  *
  *  Copyright (C) 2013-2020 Kai Dührkop, Markus Fleischauer, Marcus Ludwig, Martin A. Hoffman, Fleming Kretschmer and Sebastian Böcker,
- *  Chair of Bioinformatics, Friedrich-Schilller University.
+ *  Chair of Bioinformatics, Friedrich-Schiller University.
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Affero General Public License
+ *  as published by the Free Software Foundation; either
  *  version 3 of the License, or (at your option) any later version.
  *
- *  This library is distributed in the hope that it will be useful,
+ *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Affero General Public License for more details.
  *
- *  You should have received a copy of the GNU Lesser General Public License along with SIRIUS. If not, see <https://www.gnu.org/licenses/lgpl-3.0.txt>
+ *  You should have received a copy of the GNU Affero General Public License along with SIRIUS.  If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
  */
 
 package de.unijena.bioinf.ms.frontend.subtools.summaries;
@@ -43,6 +43,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.time.StopWatch;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -98,8 +99,7 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
         }
 
         try {
-            int maxProgress = (int) Math.ceil(project.countFeatures() * 1.01d);
-            //use all experiments in workspace to create summaries
+            int maxProgress = (int) Math.ceil(project.countFeatures() * 1.01d); //upper bound on number of features. selected instances could be much lower. but iterator has now count
             logInfo("Writing summary files...");
             StopWatch w = new StopWatch();
             w.start();
@@ -150,7 +150,7 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
                 //if this turns out to be too slow we can cache e.g. the formula candidates.
                 //However, without caching we ensure that the memory consumption is always the same no matter how large the dataset or the results are.
                 int instanceCounter = 1;
-                for (Instance inst : project) {
+                for (Instance inst : instances) {
                     updateProgress(maxProgress, instanceCounter++, "Writing Feature '" + inst.getExternalFeatureId().orElseGet(inst::getName) + "'...");
                     AlignedFeatures f = ((NoSQLInstance) inst).getAlignedFeatures();
 
@@ -284,9 +284,12 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
                             MutableMs2Spectrum query = queries.get(match.getQuerySpectrumIndex());
                             Ms2ReferenceSpectrum reference;
                             try {
-                                reference = ApplicationCore.WEB_API.getChemDB().getReferenceSpectrum(CustomDataSources.getSourceFromName(match.getDbName()), match.getUuid());
+                                CustomDataSources.Source source = CustomDataSources.getSourceFromName(match.getDbName());
+                                if (source == null) continue;
+                                reference = ApplicationCore.WEB_API.getChemDB().getReferenceSpectrum(source , match.getUuid());
                             } catch (ChemicalDatabaseException e) {
-                                break;
+                                LoggerFactory.getLogger(this.getClass()).warn("Spectral match not written to summary file. Feature ID: " + f.getAlignedFeatureId() + ". Error: " + e.getMessage());
+                                continue;
                             }
 
                             boolean nothingWritten = true;

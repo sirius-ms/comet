@@ -33,6 +33,7 @@ docs/ConsensusCriterionCSI.md
 docs/ConsensusCriterionDeNovo.md
 docs/DBLink.md
 docs/DataQuality.md
+docs/DataSmoothing.md
 docs/Deviation.md
 docs/ExperimentalApi.md
 docs/FeatureAnnotations.md
@@ -157,6 +158,7 @@ src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/ConsensusCriterionCSI.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/ConsensusCriterionDeNovo.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/DBLink.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/DataQuality.java
+src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/DataSmoothing.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Deviation.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/FeatureAnnotations.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/FeatureImport.java
@@ -222,3 +224,13 @@ src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/WorkerList.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Zodiac.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/ZodiacEdgeFilterThresholds.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/ZodiacEpochs.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/ActuatorApiTest.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/CompoundsApiTest.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/ExperimentalApiTest.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/FeaturesApiTest.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/GuiApiTest.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/InfoApiTest.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/JobsApiTest.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/LoginAndAccountApiTest.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/ProjectsApiTest.java
+src/test/java/de/unijena/bioinf/ms/nightsky/sdk/api/SearchableDatabasesApiTest.java

@@ -5,17 +5,17 @@
  *  Copyright (C) 2013-2020 Kai Dührkop, Markus Fleischauer, Marcus Ludwig, Martin A. Hoffman, Fleming Kretschmer and Sebastian Böcker,
  *  Chair of Bioinformatics, Friedrich-Schiller University.
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
+ *  This program is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Affero General Public License
+ *  as published by the Free Software Foundation; either
  *  version 3 of the License, or (at your option) any later version.
  *
- *  This library is distributed in the hope that it will be useful,
+ *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Affero General Public License for more details.
  *
- *  You should have received a copy of the GNU Lesser General Public License along with SIRIUS. If not, see <https://www.gnu.org/licenses/lgpl-3.0.txt>
+ *  You should have received a copy of the GNU Affero General Public License along with SIRIUS.  If not, see <https://www.gnu.org/licenses/agpl-3.0.txt>
  */
 
 package de.unijena.bioinf.ms.middleware.model.compute;
@@ -33,9 +33,7 @@ import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.*;
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +50,8 @@ public class ImportMultipartFilesSubmission extends AbstractImportSubmission {
     @NotEmpty
     protected List<MultipartFile> inputFiles;
 
+    private List<Path> consumedResources;
+
     @Override
     public List<InputResource<?>> asInputResource() {
         return asPathInputResourceStr().collect(Collectors.toList());
@@ -61,7 +61,13 @@ public class ImportMultipartFilesSubmission extends AbstractImportSubmission {
         return asPathInputResourceStr().collect(Collectors.toList());
     }
 
-    public Stream<PathInputResource> asPathInputResourceStr() {
+    public synchronized Stream<PathInputResource> asPathInputResourceStr() {
+        if (consumedResources == null)
+            consumeResources();
+        return consumedResources.stream().map(nuFile -> new PathInputResource(nuFile, true)); // mark as delete because it is a tmp file)
+    }
+
+    public synchronized void consumeResources() {
         FileSystem fs = (inputFiles.stream().mapToLong(MultipartFile::getSize).sum() < 4294967296L)
                 ? Jimfs.newFileSystem() : FileSystems.getDefault();
 
@@ -71,15 +77,15 @@ public class ImportMultipartFilesSubmission extends AbstractImportSubmission {
                     fs);
 
             Files.createDirectories(tmpdir);
-            return inputFiles.stream().map(f -> {
+            consumedResources = inputFiles.stream().map(f -> {
                 try {
                     Path nuFile = tmpdir.resolve(Optional.ofNullable(f.getOriginalFilename()).orElse(TsidCreator.getTsid().toString()));
                     f.transferTo(nuFile);
-                    return new PathInputResource(nuFile);
+                    return nuFile;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            });
+            }).toList();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
