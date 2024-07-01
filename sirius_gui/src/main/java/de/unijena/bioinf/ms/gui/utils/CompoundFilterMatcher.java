@@ -164,6 +164,7 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         mergedPeaks.sort(new ProcessedPeak.RelativeIntensityComparator()); // sort according to the relative intensity
 
         final CMLFilterModelOptions cmlFilterOptions = filterModel.getCmlFilterOptions();
+        final List<String> fragmentTypes = cmlFilterOptions.getFragmentTypes();
         final Deviation ms2Deviation = new Deviation(cmlFilterOptions.getMs2Deviation());
         final int minMatchingPeaks = cmlFilterOptions.getMinMatchingPeaks();
         final int numTopPeaks = cmlFilterOptions.getNumTopPeaks();
@@ -178,7 +179,7 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
 
         for(final CMLMolecule candidate : candidates){
             final ArrayList<String> matchedPeaksStrings = new ArrayList<>();
-            final List<BBFragment> fragments = candidate.createAllBBFragments();
+            final List<BBFragment> fragments = fragmentTypes == null ? candidate.createAllBBFragments() : candidate.createSpecificBBFragments(fragmentTypes);
             int matchedPeaks = 0;
 
             for(int peakIdx = startPeakIdx; peakIdx < mergedPeaks.size(); peakIdx++){
@@ -195,7 +196,7 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
                                 isMatched = true;
                                 matchedPeaks++;
                             }
-                            matchedPeaksStrings.add(item.getName()+","+peak.getMass()+","+peak.getRelativeIntensity()+","+
+                            matchedPeaksStrings.add(item.getFeatureId()+","+peak.getMass()+","+peak.getRelativeIntensity()+","+
                                     candidate.getName()+","+fragment.getFragmentTypeString()+","+h);
                         }
                     }

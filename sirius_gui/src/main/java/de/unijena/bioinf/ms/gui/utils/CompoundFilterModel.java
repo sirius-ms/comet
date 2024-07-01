@@ -138,8 +138,8 @@ public class CompoundFilterModel implements SiriusPCS {
     @Getter
     private final CompoundList compoundList;
 
-    public CompoundFilterModel(SiriusGui gui) {
-        this(0, 5000d, 0, 10000d, 0, 1d, 0, Integer.MAX_VALUE, gui);
+    public CompoundFilterModel(SiriusGui gui, CompoundList compoundList) {
+        this(0, 5000d, 0, 10000d, 0, 1d, 0, Integer.MAX_VALUE, gui,compoundList);
     }
 
 
@@ -154,8 +154,8 @@ public class CompoundFilterModel implements SiriusPCS {
      * @param minConfidence
      * @param maxConfidence
      */
-    public CompoundFilterModel(double minMz, double maxMz, double minRt, double maxRt, double minConfidence, double maxConfidence, int minIsotopePeaks, int maxIsotopePeaks, SiriusGui gui) {
-        this.compoundList = gui.getMainFrame().getCompoundList();
+    public CompoundFilterModel(double minMz, double maxMz, double minRt, double maxRt, double minConfidence, double maxConfidence, int minIsotopePeaks, int maxIsotopePeaks, SiriusGui gui, CompoundList compoundList) {
+        this.compoundList = compoundList;
         this.addPropertyChangeListener(new CMLOptionsChangeListener());
 
         this.featureQualityFilter.dataQualities.remove(DataQuality.BAD);

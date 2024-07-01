@@ -10,7 +10,9 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.List;
 
 /**
  * Compound filter options for measured combinatorial molecule libraries (especially for affinity selection experiments).
@@ -19,7 +21,7 @@ public class CMLFilterPanel extends JPanel {
 
     private final CompoundFilterModel filterModel;
     private final FileChooserPanel bbFileSelectionPanel, outputFileSelectionPanel;
-    private final JTextField scaffoldMolFormulaField;
+    private final JTextField scaffoldMolFormulaField, fragmentTypesField;
     private final JSpinner minPeaksSpinner, numTopPeaksSpinner, ms1DevSpinner, ms2DevSpinner, numHydrogenShiftsSpinner;
     private final JCheckBox peakMatchingFilterCheckBox;
 
@@ -53,14 +55,18 @@ public class CMLFilterPanel extends JPanel {
 
         // Peak matching filter params:
         {
-            // Params for enabling this filter
+            // Params for enabling this filter + text field for fragment type specification
             {
                 this.peakMatchingFilterCheckBox = new JCheckBox("Enable peak matching filter", cmlFilterModel.isPeakMatchingFilterEnabled());
                 this.peakMatchingFilterCheckBox.addChangeListener(new PeakMatchingFilterCheckBoxListener());
+                this.fragmentTypesField = new JTextField(cmlFilterModel.getFragmentTypesString());
+                this.fragmentTypesField.setToolTipText("Specifies the types of the fragments to consider (e.g. \"0,1,2,S[0;1],S[0;2]\").");
 
                 params.add(Box.createVerticalStrut(5));
                 Box box = Box.createHorizontalBox();
                 box.add(this.peakMatchingFilterCheckBox);
+                box.add(Box.createHorizontalGlue());
+                box.add(new TwoColumnPanel("Considered fragment types", this.fragmentTypesField));
                 box.add(Box.createHorizontalStrut(25));
                 params.add(box);
             }
@@ -98,6 +104,7 @@ public class CMLFilterPanel extends JPanel {
     }
 
     private void setEnablePeakMatchingFilter(boolean isEnabled){
+        this.fragmentTypesField.setEnabled(isEnabled);
         this.minPeaksSpinner.setEnabled(isEnabled);
         this.numTopPeaksSpinner.setEnabled(isEnabled);
         this.ms2DevSpinner.setEnabled(isEnabled);
@@ -109,6 +116,7 @@ public class CMLFilterPanel extends JPanel {
         final String pathToBBFile = Optional.ofNullable(this.bbFileSelectionPanel.getFilePath()).map(String::strip).orElse(null);
         final String outputPath = Optional.ofNullable(this.outputFileSelectionPanel.getFilePath()).map(String::strip).orElse(null);
         final String scaffoldMf = this.getStringValue(this.scaffoldMolFormulaField); // return null if text is null or consists of only whitespaces
+        final String fragmentTypesString = this.getStringValue(this.fragmentTypesField);
         final boolean isPeakMatchingFilterEnabled = this.peakMatchingFilterCheckBox.isSelected();
         final int minMatchingPeaks = this.getIntValue(this.minPeaksSpinner);
         final int numTopPeaks = this.getIntValue(this.numTopPeaksSpinner);
@@ -116,7 +124,8 @@ public class CMLFilterPanel extends JPanel {
         final double ms2Dev = this.getDoubleValue(this.ms2DevSpinner);
         final int numHydrogenShifts = this.getIntValue(this.numHydrogenShiftsSpinner);
 
-        CMLFilterModelOptions cmlFilterOptions = new CMLFilterModelOptions(pathToBBFile, scaffoldMf, outputPath, minMatchingPeaks,
+        final List<String> fragmentTypes = fragmentTypesString == null ? null : Arrays.stream(fragmentTypesString.split(",")).toList();
+        CMLFilterModelOptions cmlFilterOptions = new CMLFilterModelOptions(pathToBBFile, scaffoldMf, outputPath, fragmentTypes, minMatchingPeaks,
                 numTopPeaks, numHydrogenShifts, ms1Dev, ms2Dev, isPeakMatchingFilterEnabled);
         filterModel.setCMLFilterOptions(cmlFilterOptions);
     }
@@ -126,6 +135,7 @@ public class CMLFilterPanel extends JPanel {
         this.bbFileSelectionPanel.field.setText(defaultOptions.getPathToBBFile());
         this.outputFileSelectionPanel.field.setText(defaultOptions.getMatchedPeaksOutputFilePath());
         this.scaffoldMolFormulaField.setText(defaultOptions.getScaffoldMf());
+        this.fragmentTypesField.setText(defaultOptions.getFragmentTypesString());
         this.minPeaksSpinner.setValue(defaultOptions.getMinMatchingPeaks());
         this.numTopPeaksSpinner.setValue(defaultOptions.getNumTopPeaks());
         this.numHydrogenShiftsSpinner.setValue(defaultOptions.getNumAllowedHydrogenShifts());
