@@ -22,21 +22,17 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * Gets or Sets DataSmoothing
+ * Select the profile that is the closest to your instrumental setup. If nothing fits, use QTOF.
  */
-public enum DataSmoothing {
+public enum InstrumentProfile {
   
-  AUTO("AUTO"),
+  QTOF("QTOF"),
   
-  NOFILTER("NOFILTER"),
-  
-  GAUSSIAN("GAUSSIAN"),
-  
-  WAVELET("WAVELET");
+  ORBITRAP("ORBITRAP");
 
   private String value;
 
-  DataSmoothing(String value) {
+  InstrumentProfile(String value) {
     this.value = value;
   }
 
@@ -51,13 +47,13 @@ public enum DataSmoothing {
   }
 
   @JsonCreator
-  public static DataSmoothing fromValue(String value) {
-    for (DataSmoothing b : DataSmoothing.values()) {
+  public static InstrumentProfile fromValue(String value) {
+    for (InstrumentProfile b : InstrumentProfile.values()) {
       if (b.value.equals(value)) {
         return b;
       }
     }
-    throw new IllegalArgumentException("Unexpected value '" + value + "'");
+    return null;
   }
 }
 

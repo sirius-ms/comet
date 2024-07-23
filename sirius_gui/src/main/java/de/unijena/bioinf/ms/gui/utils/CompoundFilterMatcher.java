@@ -121,8 +121,6 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         if (filterModel.isElementFilterEnabled())
             if (!matchesElementFilter(item, filterModel)) return false;
 
-        if (filterModel.isMinIsotopePeaksFilterEnabled())
-            if (!filterByMinIsotopePeaks(item, filterModel)) return false;
 
         if (filterModel.isLipidFilterEnabled())
             if (!matchesLipidFilter(item, filterModel)) return false;

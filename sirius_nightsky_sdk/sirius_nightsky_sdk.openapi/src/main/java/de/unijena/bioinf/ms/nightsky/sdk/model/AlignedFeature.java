@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
   AlignedFeature.JSON_PROPERTY_ALIGNED_FEATURE_ID,
   AlignedFeature.JSON_PROPERTY_COMPOUND_ID,
   AlignedFeature.JSON_PROPERTY_NAME,
-  AlignedFeature.JSON_PROPERTY_TAG,
   AlignedFeature.JSON_PROPERTY_EXTERNAL_FEATURE_ID,
   AlignedFeature.JSON_PROPERTY_ION_MASS,
   AlignedFeature.JSON_PROPERTY_CHARGE,
@@ -61,9 +60,6 @@ public class AlignedFeature {
 
   public static final String JSON_PROPERTY_NAME = "name";
   private String name;
-
-  public static final String JSON_PROPERTY_TAG = "tag";
-  private String tag;
 
   public static final String JSON_PROPERTY_EXTERNAL_FEATURE_ID = "externalFeatureId";
   private String externalFeatureId;
@@ -182,31 +178,6 @@ public class AlignedFeature {
     this.name = name;
   }
 
-  public AlignedFeature tag(String tag) {
-    
-    this.tag = tag;
-    return this;
-  }
-
-   /**
-   * Get tag
-   * @return tag
-  **/
-  @jakarta.annotation.Nullable
-  @JsonProperty(JSON_PROPERTY_TAG)
-  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
-
-  public String getTag() {
-    return tag;
-  }
-
-
-  @JsonProperty(JSON_PROPERTY_TAG)
-  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
-  public void setTag(String tag) {
-    this.tag = tag;
-  }
-
   public AlignedFeature externalFeatureId(String externalFeatureId) {
     
     this.externalFeatureId = externalFeatureId;
@@ -264,7 +235,7 @@ public class AlignedFeature {
   }
 
    /**
-   * Get charge
+   * Ion mode (charge) this feature has been measured in.
    * @return charge
   **/
   @jakarta.annotation.Nonnull
@@ -297,7 +268,7 @@ public class AlignedFeature {
   }
 
    /**
-   * Get detectedAdducts
+   * Adducts of this feature that have been detected during preprocessing.
    * @return detectedAdducts
   **/
   @jakarta.annotation.Nonnull
@@ -553,7 +524,6 @@ public class AlignedFeature {
     return Objects.equals(this.alignedFeatureId, alignedFeature.alignedFeatureId) &&
         Objects.equals(this.compoundId, alignedFeature.compoundId) &&
         Objects.equals(this.name, alignedFeature.name) &&
-        Objects.equals(this.tag, alignedFeature.tag) &&
         Objects.equals(this.externalFeatureId, alignedFeature.externalFeatureId) &&
         Objects.equals(this.ionMass, alignedFeature.ionMass) &&
         Objects.equals(this.charge, alignedFeature.charge) &&
@@ -571,7 +541,7 @@ public class AlignedFeature {
 
   @Override
   public int hashCode() {
-    return Objects.hash(alignedFeatureId, compoundId, name, tag, externalFeatureId, ionMass, charge, detectedAdducts, rtStartSeconds, rtEndSeconds, quality, hasMs1, hasMsMs, msData, topAnnotations, topAnnotationsDeNovo, computing);
+    return Objects.hash(alignedFeatureId, compoundId, name, externalFeatureId, ionMass, charge, detectedAdducts, rtStartSeconds, rtEndSeconds, quality, hasMs1, hasMsMs, msData, topAnnotations, topAnnotationsDeNovo, computing);
   }
 
   @Override
@@ -581,7 +551,6 @@ public class AlignedFeature {
     sb.append("    alignedFeatureId: ").append(toIndentedString(alignedFeatureId)).append("\n");
     sb.append("    compoundId: ").append(toIndentedString(compoundId)).append("\n");
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
-    sb.append("    tag: ").append(toIndentedString(tag)).append("\n");
     sb.append("    externalFeatureId: ").append(toIndentedString(externalFeatureId)).append("\n");
     sb.append("    ionMass: ").append(toIndentedString(ionMass)).append("\n");
     sb.append("    charge: ").append(toIndentedString(charge)).append("\n");

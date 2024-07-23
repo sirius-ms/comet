@@ -51,8 +51,6 @@ public class AlignedFeature {
     // identifier source
     protected String name;
 
-    protected String tag;
-
     /**
      * Externally provided FeatureId (e.g. by some preprocessing tool).
      * This FeatureId is NOT used by SIRIUS but is stored to ease mapping information back to the source.
@@ -62,9 +60,15 @@ public class AlignedFeature {
     // additional attributes
     protected Double ionMass;
 
+    /**
+     * Ion mode (charge) this feature has been measured in.
+     */
     @Schema(nullable = false, requiredMode = Schema.RequiredMode.REQUIRED)
     protected int charge;
 
+    /**
+     *  Adducts of this feature that have been detected during preprocessing.
+     */
     @Schema(nullable = false, requiredMode = Schema.RequiredMode.REQUIRED)
     protected Set<String> detectedAdducts;
 

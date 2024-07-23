@@ -2,11 +2,11 @@ package de.unijena.bioinf.ms.nightsky.sdk.api;
 
 import de.unijena.bioinf.ms.nightsky.sdk.client.ApiClient;
 
-import de.unijena.bioinf.ms.nightsky.sdk.model.DataSmoothing;
 import java.io.File;
 import de.unijena.bioinf.ms.nightsky.sdk.model.ImportResult;
 import de.unijena.bioinf.ms.nightsky.sdk.model.Job;
 import de.unijena.bioinf.ms.nightsky.sdk.model.JobOptField;
+import de.unijena.bioinf.ms.nightsky.sdk.model.LcmsSubmissionParameters;
 import de.unijena.bioinf.ms.nightsky.sdk.model.ProjectInfo;
 import de.unijena.bioinf.ms.nightsky.sdk.model.ProjectInfoOptField;
 
@@ -703,25 +703,21 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)
      * <p><b>200</b> - OK
      * @param projectId Project-space to import into.
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param inputFiles The inputFiles parameter
      * @return ImportResult
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    private ResponseSpec importMsRunDataRequestCreation(String projectId, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<File> inputFiles) throws WebClientResponseException {
+    private ResponseSpec importMsRunDataRequestCreation(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<File> inputFiles) throws WebClientResponseException {
         Object postBody = null;
         // verify the required parameter 'projectId' is set
         if (projectId == null) {
             throw new WebClientResponseException("Missing the required parameter 'projectId' when calling importMsRunData", HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), null, null, null);
+        }
+        // verify the required parameter 'parameters' is set
+        if (parameters == null) {
+            throw new WebClientResponseException("Missing the required parameter 'parameters' when calling importMsRunData", HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), null, null, null);
         }
         // create path and map variables
         final Map<String, Object> pathParams = new HashMap<String, Object>();
@@ -733,16 +729,8 @@ public class ProjectsApi {
         final MultiValueMap<String, String> cookieParams = new LinkedMultiValueMap<String, String>();
         final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
 
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "tag", tag));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignRuns", alignRuns));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignLCMSRuns", parameters.isAlignLCMSRuns()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", filter));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "sigma", sigma));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "scale", scale));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "window", window));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "noise", noise));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "persistence", persistence));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "merge", merge));
         
         if (inputFiles != null)
             formParams.addAll("inputFiles", inputFiles.stream().map(FileSystemResource::new).collect(Collectors.toList()));
@@ -767,23 +755,15 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)
      * <p><b>200</b> - OK
      * @param projectId Project-space to import into.
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param inputFiles The inputFiles parameter
      * @return ImportResult
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ImportResult importMsRunData(String projectId, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<File> inputFiles) throws WebClientResponseException {
+    public ImportResult importMsRunData(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<File> inputFiles) throws WebClientResponseException {
         ParameterizedTypeReference<ImportResult> localVarReturnType = new ParameterizedTypeReference<ImportResult>() {};
-        return importMsRunDataRequestCreation(projectId, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge, inputFiles).bodyToMono(localVarReturnType).block();
+        return importMsRunDataRequestCreation(projectId, parameters, allowMs1Only, inputFiles).bodyToMono(localVarReturnType).block();
     }
 
     /**
@@ -791,23 +771,15 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)
      * <p><b>200</b> - OK
      * @param projectId Project-space to import into.
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param inputFiles The inputFiles parameter
      * @return ResponseEntity&lt;ImportResult&gt;
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseEntity<ImportResult> importMsRunDataWithHttpInfo(String projectId, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<File> inputFiles) throws WebClientResponseException {
+    public ResponseEntity<ImportResult> importMsRunDataWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<File> inputFiles) throws WebClientResponseException {
         ParameterizedTypeReference<ImportResult> localVarReturnType = new ParameterizedTypeReference<ImportResult>() {};
-        return importMsRunDataRequestCreation(projectId, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge, inputFiles).toEntity(localVarReturnType).block();
+        return importMsRunDataRequestCreation(projectId, parameters, allowMs1Only, inputFiles).toEntity(localVarReturnType).block();
     }
 
     /**
@@ -815,48 +787,36 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)
      * <p><b>200</b> - OK
      * @param projectId Project-space to import into.
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param inputFiles The inputFiles parameter
      * @return ResponseSpec
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseSpec importMsRunDataWithResponseSpec(String projectId, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<File> inputFiles) throws WebClientResponseException {
-        return importMsRunDataRequestCreation(projectId, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge, inputFiles);
+    public ResponseSpec importMsRunDataWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<File> inputFiles) throws WebClientResponseException {
+        return importMsRunDataRequestCreation(projectId, parameters, allowMs1Only, inputFiles);
     }
     /**
      * Import and Align full MS-Runs from various formats into the specified project as background job.
      * Import and Align full MS-Runs from various formats into the specified project as background job.  Possible formats (mzML, mzXML)
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @param inputFiles The inputFiles parameter
      * @return Job
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    private ResponseSpec importMsRunDataAsJobRequestCreation(String projectId, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
+    private ResponseSpec importMsRunDataAsJobRequestCreation(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
         Object postBody = null;
         // verify the required parameter 'projectId' is set
         if (projectId == null) {
             throw new WebClientResponseException("Missing the required parameter 'projectId' when calling importMsRunDataAsJob", HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), null, null, null);
+        }
+        // verify the required parameter 'parameters' is set
+        if (parameters == null) {
+            throw new WebClientResponseException("Missing the required parameter 'parameters' when calling importMsRunDataAsJob", HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), null, null, null);
         }
         // create path and map variables
         final Map<String, Object> pathParams = new HashMap<String, Object>();
@@ -868,16 +828,8 @@ public class ProjectsApi {
         final MultiValueMap<String, String> cookieParams = new LinkedMultiValueMap<String, String>();
         final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
 
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "tag", tag));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignRuns", alignRuns));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignLCMSRuns", parameters.isAlignLCMSRuns()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", filter));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "sigma", sigma));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "scale", scale));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "window", window));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "noise", noise));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "persistence", persistence));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "merge", merge));
         queryParams.putAll(apiClient.parameterToMultiValueMap(ApiClient.CollectionFormat.valueOf("multi".toUpperCase(Locale.ROOT)), "optFields", optFields));
         
         if (inputFiles != null)
@@ -895,7 +847,7 @@ public class ProjectsApi {
         String[] localVarAuthNames = new String[] {  };
 
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return apiClient.invokeAPI("/api/projects/{projectId}/jobs/import/ms-data-files-job", HttpMethod.POST, pathParams, queryParams, postBody, headerParams, cookieParams, formParams, localVarAccept, localVarContentType, localVarAuthNames, localVarReturnType);
+        return apiClient.invokeAPI("/api/projects/{projectId}/import/ms-data-files-job", HttpMethod.POST, pathParams, queryParams, postBody, headerParams, cookieParams, formParams, localVarAccept, localVarContentType, localVarAuthNames, localVarReturnType);
     }
 
     /**
@@ -903,24 +855,16 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project as background job.  Possible formats (mzML, mzXML)
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @param inputFiles The inputFiles parameter
      * @return Job
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public Job importMsRunDataAsJob(String projectId, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
+    public Job importMsRunDataAsJob(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return importMsRunDataAsJobRequestCreation(projectId, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge, optFields, inputFiles).bodyToMono(localVarReturnType).block();
+        return importMsRunDataAsJobRequestCreation(projectId, parameters, allowMs1Only, optFields, inputFiles).bodyToMono(localVarReturnType).block();
     }
 
     /**
@@ -928,24 +872,16 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project as background job.  Possible formats (mzML, mzXML)
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @param inputFiles The inputFiles parameter
      * @return ResponseEntity&lt;Job&gt;
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseEntity<Job> importMsRunDataAsJobWithHttpInfo(String projectId, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
+    public ResponseEntity<Job> importMsRunDataAsJobWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return importMsRunDataAsJobRequestCreation(projectId, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge, optFields, inputFiles).toEntity(localVarReturnType).block();
+        return importMsRunDataAsJobRequestCreation(projectId, parameters, allowMs1Only, optFields, inputFiles).toEntity(localVarReturnType).block();
     }
 
     /**
@@ -953,51 +889,39 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project as background job.  Possible formats (mzML, mzXML)
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @param inputFiles The inputFiles parameter
      * @return ResponseSpec
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseSpec importMsRunDataAsJobWithResponseSpec(String projectId, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
-        return importMsRunDataAsJobRequestCreation(projectId, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge, optFields, inputFiles);
+    public ResponseSpec importMsRunDataAsJobWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
+        return importMsRunDataAsJobRequestCreation(projectId, parameters, allowMs1Only, optFields, inputFiles);
     }
     /**
      * Import and Align full MS-Runs from various formats into the specified project as background job
      * Import and Align full MS-Runs from various formats into the specified project as background job.  Possible formats (mzML, mzXML)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;ms-data-files-job&#39; instead.
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param requestBody The requestBody parameter
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @return Job
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      * @deprecated
      */
     @Deprecated
-    private ResponseSpec importMsRunDataAsJobLocallyRequestCreation(String projectId, List<String> requestBody, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<JobOptField> optFields) throws WebClientResponseException {
+    private ResponseSpec importMsRunDataAsJobLocallyRequestCreation(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only, List<JobOptField> optFields) throws WebClientResponseException {
         Object postBody = requestBody;
         // verify the required parameter 'projectId' is set
         if (projectId == null) {
             throw new WebClientResponseException("Missing the required parameter 'projectId' when calling importMsRunDataAsJobLocally", HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), null, null, null);
+        }
+        // verify the required parameter 'parameters' is set
+        if (parameters == null) {
+            throw new WebClientResponseException("Missing the required parameter 'parameters' when calling importMsRunDataAsJobLocally", HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), null, null, null);
         }
         // verify the required parameter 'requestBody' is set
         if (requestBody == null) {
@@ -1013,16 +937,8 @@ public class ProjectsApi {
         final MultiValueMap<String, String> cookieParams = new LinkedMultiValueMap<String, String>();
         final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
 
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "tag", tag));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignRuns", alignRuns));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignLCMSRuns", parameters.isAlignLCMSRuns()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", filter));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "sigma", sigma));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "scale", scale));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "window", window));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "noise", noise));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "persistence", persistence));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "merge", merge));
         queryParams.putAll(apiClient.parameterToMultiValueMap(ApiClient.CollectionFormat.valueOf("multi".toUpperCase(Locale.ROOT)), "optFields", optFields));
         
         final String[] localVarAccepts = { 
@@ -1037,7 +953,7 @@ public class ProjectsApi {
         String[] localVarAuthNames = new String[] {  };
 
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return apiClient.invokeAPI("/api/projects/{projectId}/jobs/import/ms-data-local-files-job", HttpMethod.POST, pathParams, queryParams, postBody, headerParams, cookieParams, formParams, localVarAccept, localVarContentType, localVarAuthNames, localVarReturnType);
+        return apiClient.invokeAPI("/api/projects/{projectId}/import/ms-data-local-files-job", HttpMethod.POST, pathParams, queryParams, postBody, headerParams, cookieParams, formParams, localVarAccept, localVarContentType, localVarAuthNames, localVarReturnType);
     }
 
     /**
@@ -1045,24 +961,16 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project as background job.  Possible formats (mzML, mzXML)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;ms-data-files-job&#39; instead.
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param requestBody The requestBody parameter
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @return Job
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public Job importMsRunDataAsJobLocally(String projectId, List<String> requestBody, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<JobOptField> optFields) throws WebClientResponseException {
+    public Job importMsRunDataAsJobLocally(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only, List<JobOptField> optFields) throws WebClientResponseException {
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return importMsRunDataAsJobLocallyRequestCreation(projectId, requestBody, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge, optFields).bodyToMono(localVarReturnType).block();
+        return importMsRunDataAsJobLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only, optFields).bodyToMono(localVarReturnType).block();
     }
 
     /**
@@ -1070,24 +978,16 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project as background job.  Possible formats (mzML, mzXML)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;ms-data-files-job&#39; instead.
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param requestBody The requestBody parameter
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @return ResponseEntity&lt;Job&gt;
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseEntity<Job> importMsRunDataAsJobLocallyWithHttpInfo(String projectId, List<String> requestBody, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<JobOptField> optFields) throws WebClientResponseException {
+    public ResponseEntity<Job> importMsRunDataAsJobLocallyWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only, List<JobOptField> optFields) throws WebClientResponseException {
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return importMsRunDataAsJobLocallyRequestCreation(projectId, requestBody, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge, optFields).toEntity(localVarReturnType).block();
+        return importMsRunDataAsJobLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only, optFields).toEntity(localVarReturnType).block();
     }
 
     /**
@@ -1095,50 +995,38 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project as background job.  Possible formats (mzML, mzXML)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;ms-data-files-job&#39; instead.
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param requestBody The requestBody parameter
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @return ResponseSpec
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseSpec importMsRunDataAsJobLocallyWithResponseSpec(String projectId, List<String> requestBody, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge, List<JobOptField> optFields) throws WebClientResponseException {
-        return importMsRunDataAsJobLocallyRequestCreation(projectId, requestBody, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge, optFields);
+    public ResponseSpec importMsRunDataAsJobLocallyWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only, List<JobOptField> optFields) throws WebClientResponseException {
+        return importMsRunDataAsJobLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only, optFields);
     }
     /**
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)  
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;ms-data-files&#39; instead.
      * <p><b>200</b> - OK
      * @param projectId Project to import into.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param requestBody Local files to import into project
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @return ImportResult
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      * @deprecated
      */
     @Deprecated
-    private ResponseSpec importMsRunDataLocallyRequestCreation(String projectId, List<String> requestBody, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge) throws WebClientResponseException {
+    private ResponseSpec importMsRunDataLocallyRequestCreation(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only) throws WebClientResponseException {
         Object postBody = requestBody;
         // verify the required parameter 'projectId' is set
         if (projectId == null) {
             throw new WebClientResponseException("Missing the required parameter 'projectId' when calling importMsRunDataLocally", HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), null, null, null);
+        }
+        // verify the required parameter 'parameters' is set
+        if (parameters == null) {
+            throw new WebClientResponseException("Missing the required parameter 'parameters' when calling importMsRunDataLocally", HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.getReasonPhrase(), null, null, null);
         }
         // verify the required parameter 'requestBody' is set
         if (requestBody == null) {
@@ -1154,16 +1042,8 @@ public class ProjectsApi {
         final MultiValueMap<String, String> cookieParams = new LinkedMultiValueMap<String, String>();
         final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
 
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "tag", tag));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignRuns", alignRuns));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignLCMSRuns", parameters.isAlignLCMSRuns()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", filter));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "sigma", sigma));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "scale", scale));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "window", window));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "noise", noise));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "persistence", persistence));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "merge", merge));
         
         final String[] localVarAccepts = { 
             "application/json"
@@ -1185,23 +1065,15 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;ms-data-files&#39; instead.
      * <p><b>200</b> - OK
      * @param projectId Project to import into.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param requestBody Local files to import into project
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @return ImportResult
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ImportResult importMsRunDataLocally(String projectId, List<String> requestBody, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge) throws WebClientResponseException {
+    public ImportResult importMsRunDataLocally(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only) throws WebClientResponseException {
         ParameterizedTypeReference<ImportResult> localVarReturnType = new ParameterizedTypeReference<ImportResult>() {};
-        return importMsRunDataLocallyRequestCreation(projectId, requestBody, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge).bodyToMono(localVarReturnType).block();
+        return importMsRunDataLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only).bodyToMono(localVarReturnType).block();
     }
 
     /**
@@ -1209,23 +1081,15 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;ms-data-files&#39; instead.
      * <p><b>200</b> - OK
      * @param projectId Project to import into.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param requestBody Local files to import into project
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @return ResponseEntity&lt;ImportResult&gt;
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseEntity<ImportResult> importMsRunDataLocallyWithHttpInfo(String projectId, List<String> requestBody, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge) throws WebClientResponseException {
+    public ResponseEntity<ImportResult> importMsRunDataLocallyWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only) throws WebClientResponseException {
         ParameterizedTypeReference<ImportResult> localVarReturnType = new ParameterizedTypeReference<ImportResult>() {};
-        return importMsRunDataLocallyRequestCreation(projectId, requestBody, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge).toEntity(localVarReturnType).block();
+        return importMsRunDataLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only).toEntity(localVarReturnType).block();
     }
 
     /**
@@ -1233,22 +1097,14 @@ public class ProjectsApi {
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;ms-data-files&#39; instead.
      * <p><b>200</b> - OK
      * @param projectId Project to import into.
+     * @param parameters Parameters for feature alignment and feature finding.
      * @param requestBody Local files to import into project
-     * @param tag The tag parameter
-     * @param alignRuns Align LC/MS runs.
      * @param allowMs1Only Import data without MS/MS.
-     * @param filter Filter algorithm to suppress noise.
-     * @param sigma Sigma (kernel width) for Gaussian filter algorithm.
-     * @param scale Number of coefficients for wavelet filter algorithm.
-     * @param window Wavelet window size (%) for wavelet filter algorithm.
-     * @param noise Features must be larger than &lt;value&gt; * detected noise level.
-     * @param persistence Features must have larger persistence (intensity above valley) than &lt;value&gt; * max trace intensity.
-     * @param merge Merge neighboring features with valley less than &lt;value&gt; * intensity.
      * @return ResponseSpec
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseSpec importMsRunDataLocallyWithResponseSpec(String projectId, List<String> requestBody, String tag, Boolean alignRuns, Boolean allowMs1Only, DataSmoothing filter, Double sigma, Integer scale, Double window, Double noise, Double persistence, Double merge) throws WebClientResponseException {
-        return importMsRunDataLocallyRequestCreation(projectId, requestBody, tag, alignRuns, allowMs1Only, filter, sigma, scale, window, noise, persistence, merge);
+    public ResponseSpec importMsRunDataLocallyWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only) throws WebClientResponseException {
+        return importMsRunDataLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only);
     }
     /**
      * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)
@@ -1444,8 +1300,8 @@ public class ProjectsApi {
         return importPreprocessedDataAsJobRequestCreation(projectId, ignoreFormulas, allowMs1Only, optFields, inputFiles);
     }
     /**
-     * Import ms/ms data from the given format into the specified project-space as background job.
-     * Import ms/ms data from the given format into the specified project-space as background job.  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.   DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files-job&#39; instead.
+     * Import ms/ms data from the given format into the specified project-space as background job
+     * Import ms/ms data from the given format into the specified project-space as background job.  Possible formats (ms, mgf, cef, msp)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files-job&#39; instead.
      * <p><b>200</b> - the import job.
      * @param projectId project-space to import into.
      * @param requestBody The requestBody parameter
@@ -1497,8 +1353,8 @@ public class ProjectsApi {
     }
 
     /**
-     * Import ms/ms data from the given format into the specified project-space as background job.
-     * Import ms/ms data from the given format into the specified project-space as background job.  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.   DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files-job&#39; instead.
+     * Import ms/ms data from the given format into the specified project-space as background job
+     * Import ms/ms data from the given format into the specified project-space as background job.  Possible formats (ms, mgf, cef, msp)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files-job&#39; instead.
      * <p><b>200</b> - the import job.
      * @param projectId project-space to import into.
      * @param requestBody The requestBody parameter
@@ -1514,8 +1370,8 @@ public class ProjectsApi {
     }
 
     /**
-     * Import ms/ms data from the given format into the specified project-space as background job.
-     * Import ms/ms data from the given format into the specified project-space as background job.  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.   DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files-job&#39; instead.
+     * Import ms/ms data from the given format into the specified project-space as background job
+     * Import ms/ms data from the given format into the specified project-space as background job.  Possible formats (ms, mgf, cef, msp)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files-job&#39; instead.
      * <p><b>200</b> - the import job.
      * @param projectId project-space to import into.
      * @param requestBody The requestBody parameter
@@ -1531,8 +1387,8 @@ public class ProjectsApi {
     }
 
     /**
-     * Import ms/ms data from the given format into the specified project-space as background job.
-     * Import ms/ms data from the given format into the specified project-space as background job.  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.   DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files-job&#39; instead.
+     * Import ms/ms data from the given format into the specified project-space as background job
+     * Import ms/ms data from the given format into the specified project-space as background job.  Possible formats (ms, mgf, cef, msp)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files-job&#39; instead.
      * <p><b>200</b> - the import job.
      * @param projectId project-space to import into.
      * @param requestBody The requestBody parameter
@@ -1546,8 +1402,8 @@ public class ProjectsApi {
         return importPreprocessedDataAsJobLocallyRequestCreation(projectId, requestBody, ignoreFormulas, allowMs1Only, optFields);
     }
     /**
-     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.
-     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.   DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files&#39; instead.
+     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)  
+     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files&#39; instead.
      * <p><b>200</b> - OK
      * @param projectId project-space to import into.
      * @param requestBody files to import into project
@@ -1597,8 +1453,8 @@ public class ProjectsApi {
     }
 
     /**
-     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.
-     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.   DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files&#39; instead.
+     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)  
+     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files&#39; instead.
      * <p><b>200</b> - OK
      * @param projectId project-space to import into.
      * @param requestBody files to import into project
@@ -1613,8 +1469,8 @@ public class ProjectsApi {
     }
 
     /**
-     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.
-     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.   DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files&#39; instead.
+     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)  
+     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files&#39; instead.
      * <p><b>200</b> - OK
      * @param projectId project-space to import into.
      * @param requestBody files to import into project
@@ -1629,8 +1485,8 @@ public class ProjectsApi {
     }
 
     /**
-     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.
-     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)   ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.   DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files&#39; instead.
+     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)  
+     * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)  &lt;p&gt;  ATTENTION: This is loading input files from the filesystem where the SIRIUS service is running,  not on the system where the client SDK is running.  Is more efficient than MultipartFile upload in cases where client (SDK) and server (SIRIUS service)  are running on the same host.  &lt;p&gt;  DEPRECATED: This endpoint relies on the local filesystem and will likely be removed in later versions of this  API to allow for more flexible use cases. Use &#39;preprocessed-data-files&#39; instead.
      * <p><b>200</b> - OK
      * @param projectId project-space to import into.
      * @param requestBody files to import into project

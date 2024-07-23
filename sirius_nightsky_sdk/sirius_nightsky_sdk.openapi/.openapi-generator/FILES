@@ -33,7 +33,6 @@ docs/ConsensusCriterionCSI.md
 docs/ConsensusCriterionDeNovo.md
 docs/DBLink.md
 docs/DataQuality.md
-docs/DataSmoothing.md
 docs/Deviation.md
 docs/ExperimentalApi.md
 docs/FeatureAnnotations.md
@@ -49,7 +48,7 @@ docs/GuiInfo.md
 docs/ImportResult.md
 docs/Info.md
 docs/InfoApi.md
-docs/Instrument.md
+docs/InstrumentProfile.md
 docs/IsotopePatternAnnotation.md
 docs/Item.md
 docs/Job.md
@@ -57,6 +56,7 @@ docs/JobOptField.md
 docs/JobProgress.md
 docs/JobSubmission.md
 docs/JobsApi.md
+docs/LcmsSubmissionParameters.md
 docs/LicenseInfo.md
 docs/LipidAnnotation.md
 docs/LoginAndAccountApi.md
@@ -102,8 +102,6 @@ docs/Timeout.md
 docs/Trace.md
 docs/TraceSet.md
 docs/UseHeuristic.md
-docs/WorkerInfo.md
-docs/WorkerList.md
 docs/Zodiac.md
 docs/ZodiacEdgeFilterThresholds.md
 docs/ZodiacEpochs.md
@@ -158,7 +156,6 @@ src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/ConsensusCriterionCSI.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/ConsensusCriterionDeNovo.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/DBLink.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/DataQuality.java
-src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/DataSmoothing.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Deviation.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/FeatureAnnotations.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/FeatureImport.java
@@ -170,13 +167,14 @@ src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/FragmentationTree.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/GuiInfo.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/ImportResult.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Info.java
-src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Instrument.java
+src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/InstrumentProfile.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/IsotopePatternAnnotation.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Item.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Job.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/JobOptField.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/JobProgress.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/JobSubmission.java
+src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/LcmsSubmissionParameters.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/LicenseInfo.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/LipidAnnotation.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/LossEdge.java
@@ -219,8 +217,6 @@ src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Timeout.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Trace.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/TraceSet.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/UseHeuristic.java
-src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/WorkerInfo.java
-src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/WorkerList.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/Zodiac.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/ZodiacEdgeFilterThresholds.java
 src/main/java/de/unijena/bioinf/ms/nightsky/sdk/model/ZodiacEpochs.java

@@ -29,11 +29,10 @@ import de.unijena.bioinf.ms.gui.configs.Icons;
 import de.unijena.bioinf.ms.gui.dialogs.StacktraceDialog;
 import de.unijena.bioinf.ms.gui.dialogs.input.ImportMSDataDialog;
 import de.unijena.bioinf.ms.gui.io.filefilter.MsBatchDataFormatFilter;
-import de.unijena.bioinf.ms.gui.io.filefilter.ProjectArchivedFilter;
 import de.unijena.bioinf.ms.nightsky.sdk.jjobs.SseProgressJJob;
-import de.unijena.bioinf.ms.nightsky.sdk.model.DataSmoothing;
 import de.unijena.bioinf.ms.nightsky.sdk.model.Job;
 import de.unijena.bioinf.ms.nightsky.sdk.model.JobOptField;
+import de.unijena.bioinf.ms.nightsky.sdk.model.LcmsSubmissionParameters;
 import de.unijena.bioinf.ms.properties.PropertyManager;
 import de.unijena.bioinf.projectspace.InstanceImporter;
 import org.apache.commons.lang3.time.StopWatch;
@@ -63,7 +62,6 @@ public class ImportAction extends AbstractGuiAction {
                 "<ul style=\"list-style-type:none;\">" +
                 "  <li>- Multiple compounds (e.g. .ms, .mgf)</li>" +
                 "  <li>- LC-MS/MS runs (.mzML, .mzXml)</li>" +
-                "  <li>- Projects (.sirius)</li>" +
                 "</ul>" +
                 "<p>into the current project-space. (Same as drag and drop)</p>" +
                 "</html>");
@@ -76,7 +74,6 @@ public class ImportAction extends AbstractGuiAction {
         chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         chooser.setMultiSelectionEnabled(true);
         chooser.addChoosableFileFilter(new MsBatchDataFormatFilter());
-        chooser.addChoosableFileFilter(new ProjectArchivedFilter());
         chooser.setAcceptAllFileFilterUsed(false);
         int returnVal = chooser.showDialog(mainFrame, "Import");
 
@@ -115,38 +112,36 @@ public class ImportAction extends AbstractGuiAction {
         try {
             boolean hasLCMS = paths.containsKey(true) && !paths.get(true).isEmpty();
             boolean hasPeakLists = paths.containsKey(false) && !paths.get(false).isEmpty();
+            boolean alignAllowed = paths.get(true).size() > 1;
 
             if (!hasLCMS && !hasPeakLists)
                 return;
 
-            // show dialog
-            ImportMSDataDialog dialog = new ImportMSDataDialog(popupOwner, hasLCMS, hasLCMS && paths.get(true).size() > 1, hasPeakLists);
-            if (!dialog.isSuccess())
-                return;
+            // LC/MS default parameters
+            LcmsSubmissionParameters parameters = new LcmsSubmissionParameters();
+            if (hasLCMS)
+                parameters.setAlignLCMSRuns(false);
 
-            ParameterBinding binding = dialog.getParamterBinding();
-            String tag = binding.getOrDefault("tag", () -> null).get();
-            boolean allowMS1Only = PropertyManager.getBoolean("de.unijena.bioinf.sirius.ui.allowMs1Only", true);
+            // show dialog
+            if (hasPeakLists || alignAllowed) {
+                ImportMSDataDialog dialog = new ImportMSDataDialog(popupOwner, hasLCMS, hasLCMS && paths.get(true).size() > 1, hasPeakLists);
+                if (!dialog.isSuccess())
+                    return;
+
+                if (hasLCMS) {
+                    ParameterBinding binding = dialog.getParamterBinding();
+                    binding.getOptBoolean("align").ifPresent(parameters::setAlignLCMSRuns);
+                }
+            }
 
             // handle LC/MS files
             if (hasLCMS) {
                 List<Path> lcmsPaths = paths.get(true);
-                boolean align = binding.getOrDefault("align", () -> "~true").get().equals("~true");
-                DataSmoothing filter = DataSmoothing.valueOf(binding.getOrDefault("filter", () -> "AUTO").get());
-                double sigma = Double.parseDouble(binding.getOrDefault("sigma", () -> "3.0").get());
-                int scale = Integer.parseInt(binding.getOrDefault("scale", () -> "20").get());
-                double window = Double.parseDouble(binding.getOrDefault("window", () -> "11").get());
-                double noise = Double.parseDouble(binding.getOrDefault("noise", () -> "2.0").get());
-                double persistence = Double.parseDouble(binding.getOrDefault("persistence", () -> "0.1").get());
-                double merge = Double.parseDouble(binding.getOrDefault("merge", () -> "0.8").get());
-
                 LoadingBackroundTask<Job> task = gui.applySiriusClient((c, pid) -> {
                     Job job = c.projects().importMsRunDataAsJobLocally(pid,
+                            parameters,
                             lcmsPaths.stream().map(Path::toAbsolutePath).map(Path::toString).toList(),
-                            tag,
-                            align && lcmsPaths.size() > 1,
-                            allowMS1Only,
-                            filter, sigma, scale, window, noise, persistence, merge,
+                            true,
                             List.of(JobOptField.PROGRESS)
                     );
                     return LoadingBackroundTask.runInBackground(gui.getMainFrame(), "Importing LC/MS data...", null, new SseProgressJJob(gui.getSiriusClient(), pid, job));
@@ -157,11 +152,11 @@ public class ImportAction extends AbstractGuiAction {
 
             // handle non-LC/MS files
             if (hasPeakLists) {
-                LoadingBackroundTask<Job> task  = gui.applySiriusClient((c, pid) -> {
+                LoadingBackroundTask<Job> task = gui.applySiriusClient((c, pid) -> {
                     Job job = c.projects().importPreprocessedDataAsJobLocally(pid,
                             paths.get(false).stream().map(Path::toAbsolutePath).map(Path::toString).toList(),
                             PropertyManager.getBoolean("de.unijena.bioinf.sirius.ui.ignoreFormulas", false),
-                            PropertyManager.getBoolean("de.unijena.bioinf.sirius.ui.allowMs1Only", true),
+                            true,
                             List.of(JobOptField.PROGRESS)
                     );
                     return LoadingBackroundTask.runInBackground(gui.getMainFrame(), "Importing MS data...", null, new SseProgressJJob(gui.getSiriusClient(), pid, job));
