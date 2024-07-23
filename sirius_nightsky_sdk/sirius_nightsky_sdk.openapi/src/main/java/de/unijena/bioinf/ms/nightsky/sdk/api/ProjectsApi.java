@@ -730,6 +730,10 @@ public class ProjectsApi {
         final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
 
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignLCMSRuns", parameters.isAlignLCMSRuns()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "tag", parameters.getTag()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", parameters.getFilter()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "gaussianSigma", parameters.getGaussianSigma()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "waveletScale", parameters.getWaveletScale()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
         
         if (inputFiles != null)
@@ -829,6 +833,10 @@ public class ProjectsApi {
         final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
 
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignLCMSRuns", parameters.isAlignLCMSRuns()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "tag", parameters.getTag()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", parameters.getFilter()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "gaussianSigma", parameters.getGaussianSigma()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "waveletScale", parameters.getWaveletScale()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
         queryParams.putAll(apiClient.parameterToMultiValueMap(ApiClient.CollectionFormat.valueOf("multi".toUpperCase(Locale.ROOT)), "optFields", optFields));
         
@@ -938,6 +946,10 @@ public class ProjectsApi {
         final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
 
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignLCMSRuns", parameters.isAlignLCMSRuns()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "tag", parameters.getTag()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", parameters.getFilter()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "gaussianSigma", parameters.getGaussianSigma()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "waveletScale", parameters.getWaveletScale()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
         queryParams.putAll(apiClient.parameterToMultiValueMap(ApiClient.CollectionFormat.valueOf("multi".toUpperCase(Locale.ROOT)), "optFields", optFields));
         
@@ -1043,6 +1055,10 @@ public class ProjectsApi {
         final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
 
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "alignLCMSRuns", parameters.isAlignLCMSRuns()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "tag", parameters.getTag()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", parameters.getFilter()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "gaussianSigma", parameters.getGaussianSigma()));
+        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "waveletScale", parameters.getWaveletScale()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
         
         final String[] localVarAccepts = { 

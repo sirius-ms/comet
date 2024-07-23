@@ -52,6 +52,11 @@ public class AlignedFeature {
     protected String name;
 
     /**
+     * Data tag (this is a temporary solution, will be replaced by tagging system)
+     */
+    protected String tag;
+
+    /**
      * Externally provided FeatureId (e.g. by some preprocessing tool).
      * This FeatureId is NOT used by SIRIUS but is stored to ease mapping information back to the source.
      */

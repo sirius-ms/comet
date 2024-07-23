@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonValue;
+import de.unijena.bioinf.ms.nightsky.sdk.model.DataSmoothing;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
@@ -27,12 +28,28 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
  * LcmsSubmissionParameters
  */
 @JsonPropertyOrder({
-  LcmsSubmissionParameters.JSON_PROPERTY_ALIGN_L_C_M_S_RUNS
+  LcmsSubmissionParameters.JSON_PROPERTY_ALIGN_L_C_M_S_RUNS,
+  LcmsSubmissionParameters.JSON_PROPERTY_TAG,
+  LcmsSubmissionParameters.JSON_PROPERTY_FILTER,
+  LcmsSubmissionParameters.JSON_PROPERTY_GAUSSIAN_SIGMA,
+  LcmsSubmissionParameters.JSON_PROPERTY_WAVELET_SCALE
 })
 @jakarta.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", comments = "Generator version: 7.6.0")
 public class LcmsSubmissionParameters {
   public static final String JSON_PROPERTY_ALIGN_L_C_M_S_RUNS = "alignLCMSRuns";
   private Boolean alignLCMSRuns = true;
+
+  public static final String JSON_PROPERTY_TAG = "tag";
+  private String tag = "sample";
+
+  public static final String JSON_PROPERTY_FILTER = "filter";
+  private DataSmoothing filter = DataSmoothing.AUTO;
+
+  public static final String JSON_PROPERTY_GAUSSIAN_SIGMA = "gaussianSigma";
+  private Double gaussianSigma = 0.5d;
+
+  public static final String JSON_PROPERTY_WAVELET_SCALE = "waveletScale";
+  private Integer waveletScale = 8;
 
   public LcmsSubmissionParameters() {
   }
@@ -62,6 +79,106 @@ public class LcmsSubmissionParameters {
     this.alignLCMSRuns = alignLCMSRuns;
   }
 
+  public LcmsSubmissionParameters tag(String tag) {
+    
+    this.tag = tag;
+    return this;
+  }
+
+   /**
+   * Get tag
+   * @return tag
+  **/
+  @jakarta.annotation.Nullable
+  @JsonProperty(JSON_PROPERTY_TAG)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+
+  public String getTag() {
+    return tag;
+  }
+
+
+  @JsonProperty(JSON_PROPERTY_TAG)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+  public void setTag(String tag) {
+    this.tag = tag;
+  }
+
+  public LcmsSubmissionParameters filter(DataSmoothing filter) {
+    
+    this.filter = filter;
+    return this;
+  }
+
+   /**
+   * Get filter
+   * @return filter
+  **/
+  @jakarta.annotation.Nullable
+  @JsonProperty(JSON_PROPERTY_FILTER)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+
+  public DataSmoothing getFilter() {
+    return filter;
+  }
+
+
+  @JsonProperty(JSON_PROPERTY_FILTER)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+  public void setFilter(DataSmoothing filter) {
+    this.filter = filter;
+  }
+
+  public LcmsSubmissionParameters gaussianSigma(Double gaussianSigma) {
+    
+    this.gaussianSigma = gaussianSigma;
+    return this;
+  }
+
+   /**
+   * Sigma (kernel width) for gaussian filter algorithm.
+   * @return gaussianSigma
+  **/
+  @jakarta.annotation.Nullable
+  @JsonProperty(JSON_PROPERTY_GAUSSIAN_SIGMA)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+
+  public Double getGaussianSigma() {
+    return gaussianSigma;
+  }
+
+
+  @JsonProperty(JSON_PROPERTY_GAUSSIAN_SIGMA)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+  public void setGaussianSigma(Double gaussianSigma) {
+    this.gaussianSigma = gaussianSigma;
+  }
+
+  public LcmsSubmissionParameters waveletScale(Integer waveletScale) {
+    
+    this.waveletScale = waveletScale;
+    return this;
+  }
+
+   /**
+   * Number of coefficients for wavelet filter algorithm.
+   * @return waveletScale
+  **/
+  @jakarta.annotation.Nullable
+  @JsonProperty(JSON_PROPERTY_WAVELET_SCALE)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+
+  public Integer getWaveletScale() {
+    return waveletScale;
+  }
+
+
+  @JsonProperty(JSON_PROPERTY_WAVELET_SCALE)
+  @JsonInclude(value = JsonInclude.Include.USE_DEFAULTS)
+  public void setWaveletScale(Integer waveletScale) {
+    this.waveletScale = waveletScale;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -71,12 +188,16 @@ public class LcmsSubmissionParameters {
       return false;
     }
     LcmsSubmissionParameters lcmsSubmissionParameters = (LcmsSubmissionParameters) o;
-    return Objects.equals(this.alignLCMSRuns, lcmsSubmissionParameters.alignLCMSRuns);
+    return Objects.equals(this.alignLCMSRuns, lcmsSubmissionParameters.alignLCMSRuns) &&
+        Objects.equals(this.tag, lcmsSubmissionParameters.tag) &&
+        Objects.equals(this.filter, lcmsSubmissionParameters.filter) &&
+        Objects.equals(this.gaussianSigma, lcmsSubmissionParameters.gaussianSigma) &&
+        Objects.equals(this.waveletScale, lcmsSubmissionParameters.waveletScale);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(alignLCMSRuns);
+    return Objects.hash(alignLCMSRuns, tag, filter, gaussianSigma, waveletScale);
   }
 
   @Override
@@ -84,6 +205,10 @@ public class LcmsSubmissionParameters {
     StringBuilder sb = new StringBuilder();
     sb.append("class LcmsSubmissionParameters {\n");
     sb.append("    alignLCMSRuns: ").append(toIndentedString(alignLCMSRuns)).append("\n");
+    sb.append("    tag: ").append(toIndentedString(tag)).append("\n");
+    sb.append("    filter: ").append(toIndentedString(filter)).append("\n");
+    sb.append("    gaussianSigma: ").append(toIndentedString(gaussianSigma)).append("\n");
+    sb.append("    waveletScale: ").append(toIndentedString(waveletScale)).append("\n");
     sb.append("}");
     return sb.toString();
   }

@@ -1824,7 +1824,7 @@
           "200": {
             "description": "Probably modified name of the config (to ensure filesystem path compatibility).",
             "content": {
-              "text/plain": {
+              "application/json": {
                 "schema": {
                   "type": "string"
                 }
@@ -6194,6 +6194,16 @@
           }
         }
       },
+      "DataSmoothing": {
+        "type": "string",
+        "default": "AUTO",
+        "enum": [
+          "AUTO",
+          "NOFILTER",
+          "GAUSSIAN",
+          "WAVELET"
+        ]
+      },
       "LcmsSubmissionParameters": {
         "type": "object",
         "properties": {
@@ -6201,6 +6211,25 @@
             "type": "boolean",
             "description": "Specifies whether LC/MS runs should be aligned",
             "default": true
+          },
+          "tag": {
+            "type": "string",
+            "default": "sample"
+          },
+          "filter": {
+            "$ref": "#/components/schemas/DataSmoothing"
+          },
+          "gaussianSigma": {
+            "type": "number",
+            "description": "Sigma (kernel width) for gaussian filter algorithm.",
+            "format": "double",
+            "default": 0.5
+          },
+          "waveletScale": {
+            "type": "integer",
+            "description": "Number of coefficients for wavelet filter algorithm.",
+            "format": "int32",
+            "default": 8
           }
         }
       },

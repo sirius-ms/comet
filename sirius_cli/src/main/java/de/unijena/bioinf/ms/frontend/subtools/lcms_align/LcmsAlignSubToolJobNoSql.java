@@ -82,6 +82,8 @@ public class LcmsAlignSubToolJobNoSql extends PreprocessingJob<ProjectSpaceManag
 
     private final boolean allowMs1Only;
 
+    private final String tag;
+
     @Getter
     private LongList importedCompounds = new LongArrayList();
 
@@ -102,6 +104,7 @@ public class LcmsAlignSubToolJobNoSql extends PreprocessingJob<ProjectSpaceManag
         this.projectSupplier = projectSupplier;
         this.ionTypes = ionTypes;
         this.alignRuns = !options.noAlign;
+        this.tag = options.tag;
         this.allowMs1Only = !options.forbidMs1Only;
         this.mergedTraceSegmenter = new PersistentHomology(switch (options.smoothing) {
             case AUTO -> inputFiles.size() < 3 ? new GaussFilter(0.5) : new NoFilter();
@@ -117,6 +120,7 @@ public class LcmsAlignSubToolJobNoSql extends PreprocessingJob<ProjectSpaceManag
             @NotNull IOSupplier<? extends NoSQLProjectSpaceManager> projectSupplier,
             boolean alignRuns,
             boolean allowMs1Only,
+            String tag,
             DataSmoothing filter,
             double sigma,
             int scale,
@@ -132,6 +136,7 @@ public class LcmsAlignSubToolJobNoSql extends PreprocessingJob<ProjectSpaceManag
         this.ionTypes = ionTypes;
         this.alignRuns = alignRuns;
         this.allowMs1Only = allowMs1Only;
+        this.tag = tag;
         this.mergedTraceSegmenter = new PersistentHomology(switch (filter) {
             case AUTO -> inputFiles.size() < 3 ? new GaussFilter(0.5) : new NoFilter();
             case NOFILTER -> new NoFilter();
@@ -186,7 +191,7 @@ public class LcmsAlignSubToolJobNoSql extends PreprocessingJob<ProjectSpaceManag
         System.out.println("Good Traces = " + avgAl.doubleStream().filter(x -> x >= 5).sum());
 
         updateProgress(totalProgress, ++progress, "Importing features");
-        if (processing.extractFeaturesAndExportToProjectSpace(merged, bac) == 0) {
+        if (processing.extractFeaturesAndExportToProjectSpace(merged, bac, tag) == 0) {
             if (!allowMs1Only) {
                 System.err.println("No features with MS/MS data found.");
             } else {

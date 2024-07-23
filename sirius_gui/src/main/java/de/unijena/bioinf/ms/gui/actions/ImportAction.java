@@ -30,6 +30,7 @@ import de.unijena.bioinf.ms.gui.dialogs.StacktraceDialog;
 import de.unijena.bioinf.ms.gui.dialogs.input.ImportMSDataDialog;
 import de.unijena.bioinf.ms.gui.io.filefilter.MsBatchDataFormatFilter;
 import de.unijena.bioinf.ms.nightsky.sdk.jjobs.SseProgressJJob;
+import de.unijena.bioinf.ms.nightsky.sdk.model.DataSmoothing;
 import de.unijena.bioinf.ms.nightsky.sdk.model.Job;
 import de.unijena.bioinf.ms.nightsky.sdk.model.JobOptField;
 import de.unijena.bioinf.ms.nightsky.sdk.model.LcmsSubmissionParameters;
@@ -123,15 +124,17 @@ public class ImportAction extends AbstractGuiAction {
                 parameters.setAlignLCMSRuns(false);
 
             // show dialog
-            if (hasPeakLists || alignAllowed) {
-                ImportMSDataDialog dialog = new ImportMSDataDialog(popupOwner, hasLCMS, hasLCMS && paths.get(true).size() > 1, hasPeakLists);
-                if (!dialog.isSuccess())
-                    return;
+            ImportMSDataDialog dialog = new ImportMSDataDialog(popupOwner, hasLCMS, hasLCMS && paths.get(true).size() > 1, hasPeakLists);
+            if (!dialog.isSuccess())
+                return;
 
-                if (hasLCMS) {
-                    ParameterBinding binding = dialog.getParamterBinding();
-                    binding.getOptBoolean("align").ifPresent(parameters::setAlignLCMSRuns);
-                }
+            if (hasLCMS) {
+                ParameterBinding binding = dialog.getParamterBinding();
+                binding.getOptBoolean("align").ifPresent(parameters::setAlignLCMSRuns);
+                binding.getOpt("tag").ifPresent(parameters::setTag);
+                binding.getOpt("filter").map(DataSmoothing::valueOf).ifPresent(parameters::setFilter);
+                binding.getOptDouble("sigma").ifPresent(parameters::setGaussianSigma);
+                binding.getOptInt("scale").ifPresent(parameters::setWaveletScale);
             }
 
             // handle LC/MS files
