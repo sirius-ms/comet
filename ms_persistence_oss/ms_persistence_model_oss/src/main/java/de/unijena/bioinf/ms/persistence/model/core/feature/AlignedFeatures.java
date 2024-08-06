@@ -67,6 +67,12 @@ public class AlignedFeatures extends AbstractAlignedFeatures {
      * Some human-readable name. Usually parsed from an inputfile, or specified by the user.
      */
     private String name;
+
+    /**
+     * Data tag (this is a temporary solution, will be replaced by tagging system)
+     */
+    private String tag;
+
     /**
      * A feature id given by some external tool. Not used internally but needs to be stored to make it easier to map outputs back.
      */

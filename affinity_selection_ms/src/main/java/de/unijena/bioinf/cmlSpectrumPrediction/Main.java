@@ -135,12 +135,16 @@ public class Main {
     public static void main(String[] args) {
         try {
             // GENERAL INITIALISATION:
-            final String smiles = "C1=CC(=C(C=C1C2=C(C(=O)C3=C(C=C(C=C3O2)O)O)O)O)OC4C(C(C(C(O4)CO)O)O)O";
-            final File msFile = new File("C:\\Users\\Nutzer\\Documents\\Bioinformatik_PhD\\Epimetheus\\Daten\\training_data\\spectra\\nist_1291819.ms");
+            final String smiles = "CCC(CC)N1C2=C(C=C(C=C2)C(=O)NC(CO)C(=O)N)N=C1CC(C)C";
+            final File msFile = new File("C:\\Users\\Nutzer\\Documents\\Bioinformatik_PhD\\AS-MS-Project\\LCMS_Benzimidazole\\BAMS-14-3\\ProjectSpaces\\LCMS_230220_PS_5.7.2\\2097_230220_BAMS-14-3_01_2097\\spectrum.ms");
             final int NUM_FRAGMENTS = 50;
-            final int NUM_H_SHIFTS = 2;
-            final PrecursorIonType ionization = PrecursorIonType.fromString("[M + Na]+");
+            final int NUM_H_SHIFTS = 6;
+            final PrecursorIonType ionization = PrecursorIonType.fromString("[M + H]+");
             final Deviation deviation = new Deviation(5);
+
+            final boolean isCML = true;
+            final double[] bbMasses = new double[]{103.05075247361, 71.08607535453, 57.070425290070006};
+            final double scaffoldMass = 143.02453772512;
 
             final SmilesParser smiParser = new SmilesParser(SilentChemObjectBuilder.getInstance());
             final MolecularGraph molecule = new MolecularGraph(smiParser.parseSmiles(smiles));
@@ -182,6 +186,14 @@ public class Main {
             final BarcodeSpectrumPredictor ruleBasedSpectrumPredictor = new BarcodeSpectrumPredictor(ruleBasedFragPredictor, ionization, NUM_H_SHIFTS);
             final SimpleSpectrum ruleBasedSpectrum = new SimpleSpectrum(ruleBasedSpectrumPredictor.predictSpectrum());
 
+            BBBarcodeSpectrumPredictor bbSpecPredictor;
+            SimpleSpectrum bbPredSpectrum;
+            if(isCML){
+                bbSpecPredictor = new BBBarcodeSpectrumPredictor(molecule, bbMasses, scaffoldMass, NUM_H_SHIFTS, ionization);
+                bbPredSpectrum = new SimpleSpectrum(bbSpecPredictor.predictSpectrum());
+            }
+
+
             // WRITE RESULTS INTO A JSON-FILE:
             final String outputFilePath = "C:\\Users\\Nutzer\\Documents\\Repositories\\sirius-libs\\affinity_selection_ms\\src\\main\\resources\\visualization.json";
             try(FileWriter writer = new FileWriter(outputFilePath)) {
@@ -200,6 +212,7 @@ public class Main {
                 writeSpectrumComparison2Json(jsonGenerator, "Prioritized Iterative Fragmentation", deviation, msrdSpectrum, iterSpectrum, epimetheusPeak2Fragment, iterSpectrumPredictor.getPeak2FragmentMapping());
                 writeSpectrumComparison2Json(jsonGenerator, "Rule Based Fragmentation", deviation, msrdSpectrum, ruleBasedSpectrum, epimetheusPeak2Fragment, ruleBasedSpectrumPredictor.getPeak2FragmentMapping());
                 writeSpectrumComparison2Json(jsonGenerator, "ICEBERG", deviation, msrdSpectrum, icebergSpectrum, epimetheusPeak2Fragment, icebergPredictor.getPeak2FragmentMapping());
+                if(isCML) writeSpectrumComparison2Json(jsonGenerator, "Building Block Fragmentation", deviation, msrdSpectrum, bbPredSpectrum, epimetheusPeak2Fragment, bbSpecPredictor.getPeak2FragmentMapping());
                 jsonGenerator.writeEndArray();
                 jsonGenerator.writeEndObject();
 

@@ -26,6 +26,7 @@ dependencies {
     implementation(project(':sirius_cli'))
     implementation project(':sirius_nightsky_sdk')
     implementation project(':sirius_nightsky_sdk:sirius_nightsky_sdk.jjobs')
+    implementation(project(':affinity_selection_ms'))
     //internal
     api "de.unijena.bioinf:jjobs-swing:$jjobs_version"
     //external

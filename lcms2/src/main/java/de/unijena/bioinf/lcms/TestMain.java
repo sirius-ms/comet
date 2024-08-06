@@ -146,7 +146,7 @@ public class TestMain {
                 ProcessedSample merged = processing.merge(bac);
 //            processing.exportFeaturesToFiles(merged, bac);
 
-                processing.extractFeaturesAndExportToProjectSpace(merged, bac);
+                processing.extractFeaturesAndExportToProjectSpace(merged, bac, "sample");
 
                 assert store.countAll(MergedLCMSRun.class) == 1;
                 for (MergedLCMSRun run : store.findAll(MergedLCMSRun.class)) {

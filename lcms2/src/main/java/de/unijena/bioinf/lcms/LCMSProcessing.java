@@ -226,7 +226,7 @@ public class LCMSProcessing {
         return merged;
     }
 
-    public int extractFeaturesAndExportToProjectSpace(ProcessedSample merged, AlignmentBackbone backbone) throws IOException {
+    public int extractFeaturesAndExportToProjectSpace(ProcessedSample merged, AlignmentBackbone backbone, String tag) throws IOException {
         LongestCommonSubsequence lcs = new LongestCommonSubsequence();
         String name = Arrays.stream(backbone.getSamples()).map(s -> s.getRun().getName()).reduce((a, b) -> lcs.longestCommonSubsequence(a, b).toString()).orElse("");
         if (name.isBlank())
@@ -255,7 +255,7 @@ public class LCMSProcessing {
                 protected long[] compute() throws Exception {
                     MergedTrace mergedTrace = collectMergedTrace(merged, r.id);
                     if (mergedTrace!=null && isSuitableForImport(mergedTrace)) {
-                        return Arrays.stream(importer.importMergedTrace(mergedTraceSegmentationStrategy, siriusDatabaseAdapter, obj,merged, mergedTrace,allowMs1Only)).mapToLong(AlignedFeatures::getAlignedFeatureId).toArray();
+                        return Arrays.stream(importer.importMergedTrace(mergedTraceSegmentationStrategy, siriusDatabaseAdapter, obj,merged, mergedTrace,allowMs1Only, tag)).mapToLong(AlignedFeatures::getAlignedFeatureId).toArray();
                     }
                     return new long[0];
                 }

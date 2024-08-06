@@ -1,4 +1,4 @@
-package de.unijena.bioinf.cmlDesign.io;
+package de.unijena.bioinf.io;
 
 import java.io.BufferedWriter;
 import java.io.File;

@@ -1,7 +1,9 @@
 package de.unijena.bioinf.cmlDesign;
 
-import de.unijena.bioinf.cmlDesign.io.BuildingBlockReader;
-import de.unijena.bioinf.cmlDesign.io.BuildingBlockWriter;
+import de.unijena.bioinf.ChemistryBase.chem.utils.UnknownElementException;
+import de.unijena.bioinf.datastructures.BuildingBlock;
+import de.unijena.bioinf.io.BuildingBlockReader;
+import de.unijena.bioinf.io.BuildingBlockWriter;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -83,9 +85,15 @@ public class CLI {
             double blowupFactor = cli.blowupFactor > 0 ? cli.blowupFactor : 1e5;
 
             // Read the building block masses from the given 'bbFile' and convert these into integer masses:
-            BuildingBlockReader bbReader = new BuildingBlockReader(bbFile, massLosses);
-            bbReader.readFile();
-            double[][] bbMasses = bbReader.getBbMasses();
+            BuildingBlock[][] buildingBlocks = BuildingBlockReader.readBuildingBlocks(bbFile);
+            double[][] bbMasses = new double[buildingBlocks.length][];
+            for(int pos = 0; pos < buildingBlocks.length; pos++){
+                bbMasses[pos] = new double[buildingBlocks[pos].length];
+                for(int i = 0; i < buildingBlocks[pos].length; i++){
+                    bbMasses[pos][i] = buildingBlocks[pos][i].getMass();
+                }
+            }
+
             int[][] intBBMasses = CMLUtils.convertBBMassesToInteger(bbMasses, blowupFactor);
 
             // Initialise the CMLEvaluator which enables the evaluation of the given library:
@@ -143,7 +151,13 @@ public class CLI {
 
                 // Compute the new bbSmiles-Matrix:
                 BitSet[] optBBsBitSets = greedySearch.getOptimalBBBitSets();
-                String[][] bbSmiles = bbReader.getBbSmiles();
+                String[][] bbSmiles = new String[buildingBlocks.length][];
+                for(int pos = 0; pos < buildingBlocks.length; pos++){
+                    bbSmiles[pos] = new String[buildingBlocks[pos].length];
+                    for(int i = 0; i < buildingBlocks[pos].length; i++){
+                        bbSmiles[pos][i] = buildingBlocks[pos][i].getSmiles();
+                    }
+                }
                 String[][] optBBSmiles = new String[optBBsBitSets.length][];
                 for(int row = 0; row < optBBsBitSets.length; row++){
                     optBBSmiles[row] = new String[optBBsBitSets[row].cardinality()];
@@ -164,7 +178,7 @@ public class CLI {
             System.out.println("The arguments were not set correctly.");
             e.printStackTrace();
             parser.printUsage(System.err);
-        } catch (CDKException | IOException e) {
+        } catch (IOException | UnknownElementException e) {
             System.out.println("A problem occurred reading the file containing the building blocks.");
             e.printStackTrace();
         }
