@@ -33,12 +33,13 @@ Main developers of SIRIUS are the [Böcker group](https://bio.informatik.uni-jen
 - for Mac (64bit): [pkg](https://github.com/sirius-ms/sirius/releases/download/v6.0.1-SNAPSHOT/sirius-6.0.1-SNAPSHOT-osx64.pkg) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.1-SNAPSHOT/sirius-6.0.1-SNAPSHOT-osx64.zip)
 - for Linux (64bit): [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.1-SNAPSHOT/sirius-6.0.1-SNAPSHOT-linux64.zip)
 
-### SIRIUS+CSI:FingerID Command-Line Interface only - Version 6.0.1-SNAPSHOT (2024-06-20)
+<!--
+### SIRIUS+CSI:FingerID Command-Line Interface only - Version 6.0.2 (2024-08-02)
 ##### These versions include the Java Runtime Environment, so there is no need to install Java separately! Just download, install/unpack and execute.
 - for Windows (64bit): [msi](https://github.com/sirius-ms/sirius/releases/download/v6.0.1-SNAPSHOT/sirius-6.0.1-SNAPSHOT-win64-headless.msi) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.1-SNAPSHOT/sirius-6.0.1-SNAPSHOT-win64-headless.zip)
 - for Mac (64bit): [pkg](https://github.com/sirius-ms/sirius/releases/download/v6.0.1-SNAPSHOT/sirius-6.0.1-SNAPSHOT-osx64-headless.pkg) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.1-SNAPSHOT/sirius-6.0.1-SNAPSHOT-osx64-headless.zip)
 - for Linux (64bit): [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.1-SNAPSHOT/sirius-6.0.1-SNAPSHOT-linux64-headless.zip)
-
+-->
 
 <!--end download-->
 
@@ -64,8 +65,7 @@ may be required.
 [See also SIRIUS Documentation – Account and License](https://v6.docs.sirius-ms.io/account-and-license/).
 
 ### [Sources on GitHub](https://github.com/sirius-ms)
-- [SIRIUS frontend](https://github.com/sirius-ms/sirius)
-- [SIRIUS library](https://github.com/sirius-ms/sirius-libs)
+- [SIRIUS](https://github.com/sirius-ms/sirius)
 - [SIRIUS-API Java SDK](sirius_nightsky_sdk/sirius_nightsky_sdk.openapi/README.md)
 - [SIRIUS-API SDKs](https://github.com/sirius-ms/sirius-client-openAPI)
 
@@ -111,7 +111,7 @@ command-line tool.
 <!--begin cite-->
 ## Main citations
 
-Kai Dührkop, Markus Fleischauer, Marcus Ludwig, Alexander A. Aksenov, Alexey V. Melnik, Marvin Meusel, Pieter C. Dorrestein, Juho Rousu, and Sebastian Böcker, 
+Kai Dührkop, Markus Fleischauer, Marcus Ludwig, Alexander A. Aksenov, Alexey V. Melnik, Marvin Meusel, Pieter C. Dorrestein, Juho Rousu, and Sebastian Böcker,
 [SIRIUS 4: Turning tandem mass spectra into metabolite structure information.](https://doi.org/10.1038/s41592-019-0344-8)
 *Nature Methods* 16, 299–302, 2019.
 
@@ -151,15 +151,15 @@ Sebastian Böcker, Matthias C. Letzel, Zsuzsanna Lipták and Anton Pervukhin.
 ### Additional citations
 
 Marcus Ludwig, Kai Dührkop and Sebastian and Böcker.
-[Bayesian networks for mass spectrometric metabolite identification via molecular fingerprints.](http://doi.org/10.1093/bioinformatics/bty245) 
-*Bioinformatics*, 34(13): i333-i340. 2018. Proc. of Intelligent Systems for Molecular Biology (ISMB 2018). (Cite for CSI:FingerID Scoring) 
+[Bayesian networks for mass spectrometric metabolite identification via molecular fingerprints.](http://doi.org/10.1093/bioinformatics/bty245)
+*Bioinformatics*, 34(13): i333-i340. 2018. Proc. of Intelligent Systems for Molecular Biology (ISMB 2018). (Cite for CSI:FingerID Scoring)
 
 W. Timothy J. White, Stephan Beyer, Kai Dührkop, Markus Chimani and
 Sebastian Böcker. [Speedy Colorful
 Subtrees.](http://dx.doi.org/10.1007/978-3-319-16706-0_10) In *Proc. of
 Computing and Combinatorics Conference (COCOON 2015)*, volume 9198 of
 *Lect Notes Comput Sci*, pages 310-322. Springer, Berlin, 2015. (cite
-this on *why computations are swift*, even on a laptop computer) 
+this on *why computations are swift*, even on a laptop computer)
 
 Huibin Shen, Kai Dührkop, Sebastian Böcker and Juho Rousu. [Metabolite
 Identification through Multiple Kernel Learning on Fragmentation

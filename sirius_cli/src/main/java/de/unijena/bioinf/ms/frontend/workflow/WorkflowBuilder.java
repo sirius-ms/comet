@@ -19,7 +19,6 @@
 
 package de.unijena.bioinf.ms.frontend.workflow;
 
-import com.google.common.collect.Streams;
 import de.unijena.bioinf.ms.frontend.DefaultParameter;
 import de.unijena.bioinf.ms.frontend.subtools.*;
 import de.unijena.bioinf.ms.frontend.subtools.canopus.CanopusOptions;
@@ -63,7 +62,7 @@ import java.util.stream.Stream;
  * In the Constructor it needs to be defined how the different Subtools depend on each other and
  * in which order they have to be executed.
  * <p>
- * This class is also intended to be used from the GUI but with a different {@link RootOptions) class.
+ * This class is also intended to be used from the GUI but with a different {@link RootOptions} class.
  * <p>
  * Buy using this class we do not need to write new Workflows every time we add a new tool.
  * We just have to define its parameters in h
@@ -100,9 +99,9 @@ public class WorkflowBuilder {
 
     //postprocessing, project-space consuming tool, exporting tools,
     public final SummaryOptions summaryOptions;
-//    public final ExportPredictionsOptions exportPredictions;
+    //    public final ExportPredictionsOptions exportPredictions;
     public final MgfExporterOptions mgfExporterOptions;
-//    public final UpdateFingerprintOptions updateFingerprintOptions;
+    //    public final UpdateFingerprintOptions updateFingerprintOptions;
     public final AutoCompletionScript autocompleteOptions;
 
     //preprocessing, project-space providing tool, pre-project-space tool
@@ -187,9 +186,11 @@ public class WorkflowBuilder {
     }
 
     protected Object[] standaloneTools() {
-        return Streams.concat(
-                Stream.of(customDBOptions, similarityMatrixOptions, decompOptions, mgfExporterOptions, /*exportPredictions,*/ fingerprinterOptions/*, updateFingerprintOptions*/),
-                additionalTools.stream(), Stream.of(loginOptions, settingsOptions, autocompleteOptions)
+        return Stream.concat(
+                Stream.concat(
+                        Stream.of(customDBOptions, similarityMatrixOptions, decompOptions, mgfExporterOptions, /*exportPredictions,*/ fingerprinterOptions/*, updateFingerprintOptions*/),
+                        additionalTools.stream()
+                ), Stream.of(loginOptions, settingsOptions, autocompleteOptions)
         ).toArray(Object[]::new);
 
     }
