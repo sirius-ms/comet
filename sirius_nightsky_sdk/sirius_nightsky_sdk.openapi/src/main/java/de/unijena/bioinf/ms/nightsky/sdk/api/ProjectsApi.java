@@ -704,12 +704,11 @@ public class ProjectsApi {
      * <p><b>200</b> - OK
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param allowMs1Only Import data without MS/MS.
      * @param inputFiles The inputFiles parameter
      * @return ImportResult
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    private ResponseSpec importMsRunDataRequestCreation(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<File> inputFiles) throws WebClientResponseException {
+    private ResponseSpec importMsRunDataRequestCreation(String projectId, LcmsSubmissionParameters parameters, List<File> inputFiles) throws WebClientResponseException {
         Object postBody = null;
         // verify the required parameter 'projectId' is set
         if (projectId == null) {
@@ -734,7 +733,6 @@ public class ProjectsApi {
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", parameters.getFilter()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "gaussianSigma", parameters.getGaussianSigma()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "waveletScale", parameters.getWaveletScale()));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
         
         if (inputFiles != null)
             formParams.addAll("inputFiles", inputFiles.stream().map(FileSystemResource::new).collect(Collectors.toList()));
@@ -760,14 +758,13 @@ public class ProjectsApi {
      * <p><b>200</b> - OK
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param allowMs1Only Import data without MS/MS.
      * @param inputFiles The inputFiles parameter
      * @return ImportResult
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ImportResult importMsRunData(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<File> inputFiles) throws WebClientResponseException {
+    public ImportResult importMsRunData(String projectId, LcmsSubmissionParameters parameters, List<File> inputFiles) throws WebClientResponseException {
         ParameterizedTypeReference<ImportResult> localVarReturnType = new ParameterizedTypeReference<ImportResult>() {};
-        return importMsRunDataRequestCreation(projectId, parameters, allowMs1Only, inputFiles).bodyToMono(localVarReturnType).block();
+        return importMsRunDataRequestCreation(projectId, parameters, inputFiles).bodyToMono(localVarReturnType).block();
     }
 
     /**
@@ -776,14 +773,13 @@ public class ProjectsApi {
      * <p><b>200</b> - OK
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param allowMs1Only Import data without MS/MS.
      * @param inputFiles The inputFiles parameter
      * @return ResponseEntity&lt;ImportResult&gt;
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseEntity<ImportResult> importMsRunDataWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<File> inputFiles) throws WebClientResponseException {
+    public ResponseEntity<ImportResult> importMsRunDataWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, List<File> inputFiles) throws WebClientResponseException {
         ParameterizedTypeReference<ImportResult> localVarReturnType = new ParameterizedTypeReference<ImportResult>() {};
-        return importMsRunDataRequestCreation(projectId, parameters, allowMs1Only, inputFiles).toEntity(localVarReturnType).block();
+        return importMsRunDataRequestCreation(projectId, parameters, inputFiles).toEntity(localVarReturnType).block();
     }
 
     /**
@@ -792,13 +788,12 @@ public class ProjectsApi {
      * <p><b>200</b> - OK
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param allowMs1Only Import data without MS/MS.
      * @param inputFiles The inputFiles parameter
      * @return ResponseSpec
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseSpec importMsRunDataWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<File> inputFiles) throws WebClientResponseException {
-        return importMsRunDataRequestCreation(projectId, parameters, allowMs1Only, inputFiles);
+    public ResponseSpec importMsRunDataWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, List<File> inputFiles) throws WebClientResponseException {
+        return importMsRunDataRequestCreation(projectId, parameters, inputFiles);
     }
     /**
      * Import and Align full MS-Runs from various formats into the specified project as background job.
@@ -806,13 +801,12 @@ public class ProjectsApi {
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param allowMs1Only Import data without MS/MS.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @param inputFiles The inputFiles parameter
      * @return Job
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    private ResponseSpec importMsRunDataAsJobRequestCreation(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
+    private ResponseSpec importMsRunDataAsJobRequestCreation(String projectId, LcmsSubmissionParameters parameters, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
         Object postBody = null;
         // verify the required parameter 'projectId' is set
         if (projectId == null) {
@@ -837,7 +831,6 @@ public class ProjectsApi {
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", parameters.getFilter()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "gaussianSigma", parameters.getGaussianSigma()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "waveletScale", parameters.getWaveletScale()));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
         queryParams.putAll(apiClient.parameterToMultiValueMap(ApiClient.CollectionFormat.valueOf("multi".toUpperCase(Locale.ROOT)), "optFields", optFields));
         
         if (inputFiles != null)
@@ -864,15 +857,14 @@ public class ProjectsApi {
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param allowMs1Only Import data without MS/MS.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @param inputFiles The inputFiles parameter
      * @return Job
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public Job importMsRunDataAsJob(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
+    public Job importMsRunDataAsJob(String projectId, LcmsSubmissionParameters parameters, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return importMsRunDataAsJobRequestCreation(projectId, parameters, allowMs1Only, optFields, inputFiles).bodyToMono(localVarReturnType).block();
+        return importMsRunDataAsJobRequestCreation(projectId, parameters, optFields, inputFiles).bodyToMono(localVarReturnType).block();
     }
 
     /**
@@ -881,15 +873,14 @@ public class ProjectsApi {
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param allowMs1Only Import data without MS/MS.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @param inputFiles The inputFiles parameter
      * @return ResponseEntity&lt;Job&gt;
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseEntity<Job> importMsRunDataAsJobWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
+    public ResponseEntity<Job> importMsRunDataAsJobWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return importMsRunDataAsJobRequestCreation(projectId, parameters, allowMs1Only, optFields, inputFiles).toEntity(localVarReturnType).block();
+        return importMsRunDataAsJobRequestCreation(projectId, parameters, optFields, inputFiles).toEntity(localVarReturnType).block();
     }
 
     /**
@@ -898,14 +889,13 @@ public class ProjectsApi {
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param allowMs1Only Import data without MS/MS.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @param inputFiles The inputFiles parameter
      * @return ResponseSpec
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseSpec importMsRunDataAsJobWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, Boolean allowMs1Only, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
-        return importMsRunDataAsJobRequestCreation(projectId, parameters, allowMs1Only, optFields, inputFiles);
+    public ResponseSpec importMsRunDataAsJobWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, List<JobOptField> optFields, List<File> inputFiles) throws WebClientResponseException {
+        return importMsRunDataAsJobRequestCreation(projectId, parameters, optFields, inputFiles);
     }
     /**
      * Import and Align full MS-Runs from various formats into the specified project as background job
@@ -913,15 +903,14 @@ public class ProjectsApi {
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param requestBody The requestBody parameter
-     * @param allowMs1Only Import data without MS/MS.
+     * @param requestBody Local files to import into project.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @return Job
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      * @deprecated
      */
     @Deprecated
-    private ResponseSpec importMsRunDataAsJobLocallyRequestCreation(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only, List<JobOptField> optFields) throws WebClientResponseException {
+    private ResponseSpec importMsRunDataAsJobLocallyRequestCreation(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, List<JobOptField> optFields) throws WebClientResponseException {
         Object postBody = requestBody;
         // verify the required parameter 'projectId' is set
         if (projectId == null) {
@@ -950,7 +939,6 @@ public class ProjectsApi {
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", parameters.getFilter()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "gaussianSigma", parameters.getGaussianSigma()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "waveletScale", parameters.getWaveletScale()));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
         queryParams.putAll(apiClient.parameterToMultiValueMap(ApiClient.CollectionFormat.valueOf("multi".toUpperCase(Locale.ROOT)), "optFields", optFields));
         
         final String[] localVarAccepts = { 
@@ -974,15 +962,14 @@ public class ProjectsApi {
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param requestBody The requestBody parameter
-     * @param allowMs1Only Import data without MS/MS.
+     * @param requestBody Local files to import into project.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @return Job
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public Job importMsRunDataAsJobLocally(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only, List<JobOptField> optFields) throws WebClientResponseException {
+    public Job importMsRunDataAsJobLocally(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, List<JobOptField> optFields) throws WebClientResponseException {
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return importMsRunDataAsJobLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only, optFields).bodyToMono(localVarReturnType).block();
+        return importMsRunDataAsJobLocallyRequestCreation(projectId, parameters, requestBody, optFields).bodyToMono(localVarReturnType).block();
     }
 
     /**
@@ -991,15 +978,14 @@ public class ProjectsApi {
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param requestBody The requestBody parameter
-     * @param allowMs1Only Import data without MS/MS.
+     * @param requestBody Local files to import into project.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @return ResponseEntity&lt;Job&gt;
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseEntity<Job> importMsRunDataAsJobLocallyWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only, List<JobOptField> optFields) throws WebClientResponseException {
+    public ResponseEntity<Job> importMsRunDataAsJobLocallyWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, List<JobOptField> optFields) throws WebClientResponseException {
         ParameterizedTypeReference<Job> localVarReturnType = new ParameterizedTypeReference<Job>() {};
-        return importMsRunDataAsJobLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only, optFields).toEntity(localVarReturnType).block();
+        return importMsRunDataAsJobLocallyRequestCreation(projectId, parameters, requestBody, optFields).toEntity(localVarReturnType).block();
     }
 
     /**
@@ -1008,14 +994,13 @@ public class ProjectsApi {
      * <p><b>200</b> - the import job.
      * @param projectId Project-space to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param requestBody The requestBody parameter
-     * @param allowMs1Only Import data without MS/MS.
+     * @param requestBody Local files to import into project.
      * @param optFields Set of optional fields to be included. Use &#39;none&#39; only to override defaults.
      * @return ResponseSpec
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseSpec importMsRunDataAsJobLocallyWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only, List<JobOptField> optFields) throws WebClientResponseException {
-        return importMsRunDataAsJobLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only, optFields);
+    public ResponseSpec importMsRunDataAsJobLocallyWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, List<JobOptField> optFields) throws WebClientResponseException {
+        return importMsRunDataAsJobLocallyRequestCreation(projectId, parameters, requestBody, optFields);
     }
     /**
      * Import and Align full MS-Runs from various formats into the specified project  Possible formats (mzML, mzXML)  
@@ -1023,14 +1008,13 @@ public class ProjectsApi {
      * <p><b>200</b> - OK
      * @param projectId Project to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param requestBody Local files to import into project
-     * @param allowMs1Only Import data without MS/MS.
+     * @param requestBody Local files to import into project.
      * @return ImportResult
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      * @deprecated
      */
     @Deprecated
-    private ResponseSpec importMsRunDataLocallyRequestCreation(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only) throws WebClientResponseException {
+    private ResponseSpec importMsRunDataLocallyRequestCreation(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody) throws WebClientResponseException {
         Object postBody = requestBody;
         // verify the required parameter 'projectId' is set
         if (projectId == null) {
@@ -1059,7 +1043,6 @@ public class ProjectsApi {
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "filter", parameters.getFilter()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "gaussianSigma", parameters.getGaussianSigma()));
         queryParams.putAll(apiClient.parameterToMultiValueMap(null, "waveletScale", parameters.getWaveletScale()));
-        queryParams.putAll(apiClient.parameterToMultiValueMap(null, "allowMs1Only", allowMs1Only));
         
         final String[] localVarAccepts = { 
             "application/json"
@@ -1082,14 +1065,13 @@ public class ProjectsApi {
      * <p><b>200</b> - OK
      * @param projectId Project to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param requestBody Local files to import into project
-     * @param allowMs1Only Import data without MS/MS.
+     * @param requestBody Local files to import into project.
      * @return ImportResult
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ImportResult importMsRunDataLocally(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only) throws WebClientResponseException {
+    public ImportResult importMsRunDataLocally(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody) throws WebClientResponseException {
         ParameterizedTypeReference<ImportResult> localVarReturnType = new ParameterizedTypeReference<ImportResult>() {};
-        return importMsRunDataLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only).bodyToMono(localVarReturnType).block();
+        return importMsRunDataLocallyRequestCreation(projectId, parameters, requestBody).bodyToMono(localVarReturnType).block();
     }
 
     /**
@@ -1098,14 +1080,13 @@ public class ProjectsApi {
      * <p><b>200</b> - OK
      * @param projectId Project to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param requestBody Local files to import into project
-     * @param allowMs1Only Import data without MS/MS.
+     * @param requestBody Local files to import into project.
      * @return ResponseEntity&lt;ImportResult&gt;
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseEntity<ImportResult> importMsRunDataLocallyWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only) throws WebClientResponseException {
+    public ResponseEntity<ImportResult> importMsRunDataLocallyWithHttpInfo(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody) throws WebClientResponseException {
         ParameterizedTypeReference<ImportResult> localVarReturnType = new ParameterizedTypeReference<ImportResult>() {};
-        return importMsRunDataLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only).toEntity(localVarReturnType).block();
+        return importMsRunDataLocallyRequestCreation(projectId, parameters, requestBody).toEntity(localVarReturnType).block();
     }
 
     /**
@@ -1114,13 +1095,12 @@ public class ProjectsApi {
      * <p><b>200</b> - OK
      * @param projectId Project to import into.
      * @param parameters Parameters for feature alignment and feature finding.
-     * @param requestBody Local files to import into project
-     * @param allowMs1Only Import data without MS/MS.
+     * @param requestBody Local files to import into project.
      * @return ResponseSpec
      * @throws WebClientResponseException if an error occurs while attempting to invoke the API
      */
-    public ResponseSpec importMsRunDataLocallyWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody, Boolean allowMs1Only) throws WebClientResponseException {
-        return importMsRunDataLocallyRequestCreation(projectId, parameters, requestBody, allowMs1Only);
+    public ResponseSpec importMsRunDataLocallyWithResponseSpec(String projectId, LcmsSubmissionParameters parameters, List<String> requestBody) throws WebClientResponseException {
+        return importMsRunDataLocallyRequestCreation(projectId, parameters, requestBody);
     }
     /**
      * Import already preprocessed ms/ms data from various formats into the specified project  Possible formats (ms, mgf, cef, msp)

@@ -20,15 +20,14 @@ package de.unijena.bioinf.ms.gui.utils;/*
 
 import ca.odell.glazedlists.matchers.Matcher;
 import de.unijena.bioinf.ChemistryBase.chem.MolecularFormula;
+import de.unijena.bioinf.ChemistryBase.ms.*;
+import de.unijena.bioinf.ChemistryBase.ms.Deviation;
 import de.unijena.bioinf.datastructures.BBFragment;
 import de.unijena.bioinf.datastructures.CMLMolecule;
 import de.unijena.bioinf.sirius.Sirius;
 import de.unijena.bioinf.ChemistryBase.chem.FormulaConstraints;
 import de.unijena.bioinf.ChemistryBase.chem.PrecursorIonType;
 import de.unijena.bioinf.ChemistryBase.chem.RetentionTime;
-import de.unijena.bioinf.ChemistryBase.ms.MS1MassDeviation;
-import de.unijena.bioinf.ChemistryBase.ms.Deviation;
-import de.unijena.bioinf.ChemistryBase.ms.Ms2Experiment;
 import de.unijena.bioinf.ChemistryBase.ms.utils.Spectrums;
 import de.unijena.bioinf.ChemistryBase.ms.utils.WrapperSpectrum;
 import de.unijena.bioinf.datastructures.CMLCandidates;

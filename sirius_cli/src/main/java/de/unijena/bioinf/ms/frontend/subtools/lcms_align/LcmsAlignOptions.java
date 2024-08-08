@@ -64,9 +64,6 @@ public class LcmsAlignOptions implements PreprocessingTool<PreprocessingJob<Proj
     @CommandLine.Option(names={"--tag"}, defaultValue = "sample", description = "Data type tag (e.g. \"blank\", \"control\", or \"sample\").")
     public String tag;
 
-    @CommandLine.Option(names="--no-ms1-only", description = "Do not import features without MS/MS data", hidden = true)
-    public boolean forbidMs1Only;
-
     @CommandLine.Option(names={"--smoothing"}, defaultValue = "AUTO", description = "Filter algorithm to suppress noise.", hidden = true)
     public DataSmoothing smoothing;
 
