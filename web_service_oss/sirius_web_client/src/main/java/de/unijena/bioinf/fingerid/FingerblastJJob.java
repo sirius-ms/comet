@@ -38,6 +38,7 @@ import de.unijena.bioinf.fingerid.blast.BayesnetScoring;
 import de.unijena.bioinf.fingerid.blast.FBCandidates;
 import de.unijena.bioinf.fingerid.blast.FingerblastResult;
 import de.unijena.bioinf.fingerid.blast.parameters.ParameterStore;
+import de.unijena.bioinf.fragmenter.RankWithEpimetheus;
 import de.unijena.bioinf.jjobs.BasicMasterJJob;
 import de.unijena.bioinf.ms.properties.PropertyManager;
 import de.unijena.bioinf.ms.rest.model.canopus.CanopusJobInput;
@@ -125,6 +126,9 @@ public class FingerblastJJob extends BasicMasterJJob<List<FingerIdResult>> {
             return List.of();
         }
 
+        // Reranking with EPIMETHEUS if enabled:
+        final RankWithEpimetheus rankWithEpimetheus = experiment.getAnnotationOrDefault(RankWithEpimetheus.class);
+
         //Distance <= value for which structures are considered identical for approximate mode confidence score
         final ConfidenceScoreApproximateDistance confScoreApproxDist = experiment.getAnnotationOrNull(ConfidenceScoreApproximateDistance.class);
 
@@ -201,7 +205,7 @@ public class FingerblastJJob extends BasicMasterJJob<List<FingerIdResult>> {
                         scorings[i] = bayesJobs[i].awaitResult();
                         webJJobs.remove(bayesJobs[i]);
                     }
-                    final FingerblastSearchJJob blastJob = FingerblastSearchJJob.of(predictor, scorings[i], fingeridInput);
+                    final EpiFingerblastSearchJJob blastJob = new EpiFingerblastSearchJJob(predictor, scorings[i], fingeridInput, rankWithEpimetheus.value);
                     searchJJobs.add(blastJob);
 
                     blastJob.addRequiredJob(formulaJobs.get(i));
