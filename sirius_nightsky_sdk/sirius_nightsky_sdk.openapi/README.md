@@ -42,7 +42,7 @@ Add this dependency to your project's POM:
 <dependency>
   <groupId>de.unijena.bioinf.ms</groupId>
   <artifactId>sirius_nightsky_sdk</artifactId>
-  <version>6.0.1-SNAPSHOT</version>
+  <version>6.0.3</version>
   <scope>compile</scope>
 </dependency>
 ```
@@ -58,7 +58,7 @@ Add this dependency to your project's build file:
   }
 
   dependencies {
-     implementation "de.unijena.bioinf.ms:sirius_nightsky_sdk:unspecified"
+     implementation "de.unijena.bioinf.ms:sirius_nightsky_sdk:6.0.3"
   }
 ```
 
@@ -72,7 +72,7 @@ mvn clean package
 
 Then manually install the following JARs:
 
-- `target/sirius_nightsky_sdk-unspecified.jar`
+- `target/sirius_nightsky_sdk-6.0.3.jar`
 - `target/lib/*.jar`
 
 ## Getting Started
@@ -249,7 +249,6 @@ Class | Method | HTTP request | Description
  - [ConsensusCriterionDeNovo](docs/ConsensusCriterionDeNovo.md)
  - [DBLink](docs/DBLink.md)
  - [DataQuality](docs/DataQuality.md)
- - [DataSmoothing](docs/DataSmoothing.md)
  - [Deviation](docs/Deviation.md)
  - [FeatureAnnotations](docs/FeatureAnnotations.md)
  - [FeatureImport](docs/FeatureImport.md)
