@@ -92,7 +92,7 @@ public class EpiFingerblastSearchJJob extends FingerblastSearchJJob {
         }).collect(Collectors.toList());
     }
 
-    /*
+
     // #####################################
     // #### This is the original method.####
     // #####################################
@@ -125,8 +125,9 @@ public class EpiFingerblastSearchJJob extends FingerblastSearchJJob {
         subtreeCalc.computeSubtree();
         return subtreeCalc.getScore();
     }
-     */
 
+
+    /*
     private static double scoreCandidate(FingerprintCandidate candidate, FTree fTree, SmilesParser smiParser) throws InvalidSmilesException {
         // INITIALISATION:
         final MolecularGraph molecule = new MolecularGraph(fTree.getRoot().getFormula(), smiParser.parseSmiles(candidate.getSmiles()));
@@ -156,6 +157,8 @@ public class EpiFingerblastSearchJJob extends FingerblastSearchJJob {
         subtreeCalc.computeSubtree();
         return subtreeCalc.getScore();
     }
+
+     */
 
     @Override
     public String identifier(){
