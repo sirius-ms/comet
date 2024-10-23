@@ -210,6 +210,10 @@ allprojects {
 
         api "de.unijena.bioinf:jjobs-core:$jjobs_version"
         api "org.slf4j:slf4j-api:$slf4j_version"
+        //adapters used to replace excluded logging frameworks
+        implementation("org.slf4j:log4j-over-slf4j:$slf4j_version")
+        implementation("org.slf4j:jcl-over-slf4j:$slf4j_version")
+        implementation("org.slf4j:jul-to-slf4j:$slf4j_version")
 
         // Annotations
         api "org.jetbrains:annotations:$jetbrains_version"
