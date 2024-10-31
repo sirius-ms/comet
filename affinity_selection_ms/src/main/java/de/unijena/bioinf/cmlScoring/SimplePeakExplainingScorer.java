@@ -4,22 +4,16 @@ import de.unijena.bioinf.ChemistryBase.algorithm.scoring.SScored;
 import de.unijena.bioinf.ChemistryBase.algorithm.scoring.Score.DoubleScore;
 import de.unijena.bioinf.ChemistryBase.chem.MolecularFormula;
 import de.unijena.bioinf.ChemistryBase.chem.PrecursorIonType;
-import de.unijena.bioinf.ChemistryBase.chem.utils.UnknownElementException;
 import de.unijena.bioinf.ChemistryBase.ms.Deviation;
 import de.unijena.bioinf.ChemistryBase.ms.Ms2Experiment;
-import de.unijena.bioinf.babelms.MsIO;
 import de.unijena.bioinf.datastructures.*;
-import de.unijena.bioinf.io.BuildingBlockReader;
 import de.unijena.bioinf.sirius.ProcessedInput;
 import de.unijena.bioinf.sirius.ProcessedPeak;
 import de.unijena.bioinf.sirius.Sirius;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 
-public class SimplePeakExplainingScorer implements CMLScorer{
+public class SimplePeakExplainingScorer implements CMLScorer<DoubleScore>{
 
     private final Deviation massDeviation;
     private final int allowedHydrogenShifts;
@@ -76,6 +70,7 @@ public class SimplePeakExplainingScorer implements CMLScorer{
         return new SScored<>(molecule, score);
     }
 
+    /*
     public static void main(String[] args){
         try{
             File msFile = new File("/home/nils/Dokumente/Bioinformatik_PhD/AS-MS-Project/Data/benzimidazole/ENL161/annotation/annotated_spectra/post_filtered_spectra/manual/ENL161_spectrum_42.ms");
@@ -99,4 +94,5 @@ public class SimplePeakExplainingScorer implements CMLScorer{
             e.printStackTrace();
         }
     }
+     */
 }
