@@ -14,6 +14,9 @@ SIRIUS integrates a collection of our tools, including CSI:FingerID (with [COSMI
 [CANOPUS](https://bio.informatik.uni-jena.de/software/canopus/). In particular, both the
 graphical user interface and the command line version of SIRIUS seamlessly integrate the CSI:FingerID and CANOPUS web services.
 
+**Note:** this version integrates COMET (Combinatorial Mass Encoding decoding Tool) and enables the LC-MS/MS data analysis 
+associated with an affinity selection-mass spectrometry workflow in which self-encoded libraries were used.  
+
 Main developers of SIRIUS are the [Böcker group](https://bio.informatik.uni-jena.de/) and the [Bright Giant GmbH](https://bright-giant.com)
 
 ## Download Links
