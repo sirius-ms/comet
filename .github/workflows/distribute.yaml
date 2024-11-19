@@ -183,21 +183,21 @@ jobs:
 #      - name: Sirius Run Cleanup
 #        run: |
 #          rm -r sirius_cli/build/test/temp_results
-      - if: matrix.os == 'windows-latest'
-        name: Azure Trusted Signing for Widows MSI
-        uses: azure/trusted-signing-action@v0.3.16
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: ${{ secrets.AZURE_ENDPOINT }}
-          code-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
-          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
-
-          # Sign all exes inside the folder
-          files-folder: ./sirius_dist/sirius_gui_dist/build/jpDists/
-          files-folder-filter: msi
-          file-digest: SHA256
+#      - if: matrix.os == 'windows-latest'
+#        name: Azure Trusted Signing for Widows MSI
+#        uses: azure/trusted-signing-action@v0.3.16
+#        with:
+#          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+#          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+#          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+#          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+#          code-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+#          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+#
+#          # Sign all exes inside the folder
+#          files-folder: ./sirius_dist/sirius_gui_dist/build/jpDists/
+#          files-folder-filter: msi
+#          file-digest: SHA256
 
       - name: Upload Distributions
         uses: actions/upload-artifact@v4
@@ -210,7 +210,9 @@ jobs:
             ./sirius_dist/sirius_gui_dist/build/jpDists/*.pkg
             ./sirius_dist/sirius_gui_dist/build/jpDists/*.deb
             ./sirius_dist/sirius_gui_dist/build/jpDists/*.sha256
-
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
 #  dockergen:
 #    needs: [ distGUI ]
 #    uses: ./.github/workflows/dockergen.yaml
@@ -244,16 +246,16 @@ jobs:
         with:
           artifacts: "sirius_dist/build/tmp/artifacts/*/*"
           body: |
-            ### Prebuilt SIRIUS releases for all supported platforms. 
+            ### Prebuilt COMET releases for all supported platforms. 
             
             Package names are made up as follows: `<App Name>-<Version>-<Operating System>-<Flavor>.<PackageType>`. Package types are either generic `.zip` archives or operating system specific installers (e.g. `.pkg` or `.msi`). The flavors describe builds with different features:
-            * no _Flavor_ suffix represents for the standard SIRIUS package that contains the Graphical User Interface (GUI), the background service and the Command Line Tool (CLI)
+            * no _Flavor_ suffix represents for the standard COMET package that contains the Graphical User Interface (GUI), the background service and the Command Line Tool (CLI)
             * [currently not available] `headless` represents a command line only version that does not contain GUI relevant packages. It is smaller and does not need any GUI libraries installed on the users system (good for servers). 
             
             See the [online documentation](https://v6.docs.sirius-ms.io/quick-start/) for details.
           
             Changelog can be found [here](https://v6.docs.sirius-ms.io/changelog/).
-          name: "SIRIUS v${{ steps.sirius_version.outputs.value }}"
+          name: "COMET v${{ steps.sirius_version.outputs.value }}"
           tag: "v${{ steps.sirius_version.outputs.value }}"
           prerelease: ${{ endsWith(steps.sirius_version.outputs.value, '-SNAPSHOT') }}
           allowUpdates: ${{ endsWith(steps.sirius_version.outputs.value, '-SNAPSHOT') }}
