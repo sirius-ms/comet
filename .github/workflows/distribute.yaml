@@ -2,8 +2,7 @@ name: Build and Publish
 on:
   push:
     branches:
-      - stable
-      - master
+      - asms-release-bg-fsu
     #      - stable-service-api
     paths-ignore:
       - '**/README.md'
@@ -16,13 +15,13 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
     env:
-      GENERIC_INSTALLER_CERTIFICATE: ${{ secrets.GENERIC_INSTALLER_CERTIFICATE }}
-      MACOS_APP_IDENTITY_ID: ${{ secrets.MACOS_APP_IDENTITY_ID }}
-      MACOS_IDENTITY_ID: ${{ secrets.MACOS_IDENTITY_ID }}
-      MACOS_APPLE_ID: ${{ secrets.MACOS_APPLE_ID }}
-      MACOS_APPLE_ID_PW: ${{ secrets.MACOS_APPLE_ID_PW }}
-      SIRIUS_USER: ${{ secrets.SIRIUS_USER }}
-      SIRIUS_PW: ${{ secrets.SIRIUS_PW }}
+      GENERIC_INSTALLER_CERTIFICATE: '' #${{ secrets.GENERIC_INSTALLER_CERTIFICATE }}
+      MACOS_APP_IDENTITY_ID: '' #${{ secrets.MACOS_APP_IDENTITY_ID }}
+      MACOS_IDENTITY_ID: '' #${{ secrets.MACOS_IDENTITY_ID }}
+      MACOS_APPLE_ID: '' #${{ secrets.MACOS_APPLE_ID }}
+      MACOS_APPLE_ID_PW: '' #${{ secrets.MACOS_APPLE_ID_PW }}
+      #SIRIUS_USER: ${{ secrets.SIRIUS_USER }}
+      #SIRIUS_PW: ${{ secrets.SIRIUS_PW }}
     steps:
       - uses: actions/checkout@v3
         with:
