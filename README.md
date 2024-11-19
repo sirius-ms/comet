@@ -9,15 +9,15 @@ Please review the [terms of service](https://bio.informatik.uni-jena.de/terms-of
 For non-academic users, the [Bright Giant GmbH](https://bright-giant.com) provides licenses and all related services.
 We ask that users of our tools cite the corresponding papers in any resulting publications.</span>*
 
-SIRIUS is a java-based software framework for the analysis of LC-MS/MS data of metabolites and other "small molecules of biological interest".
-SIRIUS integrates a collection of our tools, including CSI:FingerID (with [COSMIC](https://bio.informatik.uni-jena.de/software/cosmic/)), [ZODIAC](https://bio.informatik.uni-jena.de/software/zodiac/) and
-[CANOPUS](https://bio.informatik.uni-jena.de/software/canopus/). In particular, both the
-graphical user interface and the command line version of SIRIUS seamlessly integrate the CSI:FingerID and CANOPUS web services.
+COMET (Combinatorial Mass Encoding decoding Tool) is a java-based software framework for the analysis of LC-MS/MS data 
+obtained from an affinity selection-mass spectrometry (AS-MS) workflow where self-encoded libraries were screened. 
+The use case focuses mainly on combinatorial libraries where all library compounds represent distinct combinations of predefined building blocks. 
+Nevertheless, COMET can also be used in conjunction with natural product libraries as screening libraries.
 
-**Note:** this version integrates COMET (Combinatorial Mass Encoding decoding Tool) and enables the LC-MS/MS data analysis 
-associated with an affinity selection-mass spectrometry workflow in which self-encoded libraries were used.  
+Currently, the SIRIUS platform is used in which ASMS-related features are integrated,
+e.g. excluding features (or MS/MS spectra) unrelated to compounds of the screened combinatorial library and ranking of candidate structures using EPIMETHEUS.
 
-Main developers of SIRIUS are the [Böcker group](https://bio.informatik.uni-jena.de/) and the [Bright Giant GmbH](https://bright-giant.com)
+Main developers of COMET are the [Böcker group](https://bio.informatik.uni-jena.de/) and the [Bright Giant GmbH](https://bright-giant.com)
 
 ## Download Links
 
@@ -30,27 +30,18 @@ Main developers of SIRIUS are the [Böcker group](https://bio.informatik.uni-jen
 
 <!--begin download-->
 
-### SIRIUS+CSI:FingerID GUI and CLI - Version 6.0.4 (2024-08-11)
+### COMET (2024-08-11)
 ##### These versions include the Java Runtime Environment, so there is no need to install Java separately! Just download, install/unpack and execute.
-- for Windows (64bit): [msi](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-win64.msi) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-win64.zip)
-- for Mac (64bit): [pkg](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-osx64.pkg) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-osx64.zip)
-- for Linux (64bit): [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-linux64.zip)
-
-<!--
-### SIRIUS+CSI:FingerID Command-Line Interface only - Version 6.0.4 (2024-08-11)
-##### These versions include the Java Runtime Environment, so there is no need to install Java separately! Just download, install/unpack and execute.
-- for Windows (64bit): [msi](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-win64-headless.msi) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-win64-headless.zip)
-- for Mac (64bit): [pkg](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-osx64-headless.pkg) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-osx64-headless.zip)
-- for Linux (64bit): [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-linux64-headless.zip)
--->
-
+- for Windows (64bit): [msi](<link>) / [zip](link)
+- for Mac (64bit): [pkg](link) / [zip](link)
+- for Linux (64bit): [zip](link)
 
 <!--end download-->
 
 All (including previous) releases can be found [here](https://github.com/sirius-ms/sirius/releases).
 
 ### [Installation](https://v6.docs.sirius-ms.io/install)
-For  Windows and MacOS, the installer version of SIRIUS (msi/pkg) should be preferred but might require administrator permissions.
+For  Windows and MacOS, the installer version of COMET (msi/pkg) should be preferred but might require administrator permissions.
 
 Since we do not pay Microsoft/Apple for certification, you might have to confirm that you want to trust "software from
 an unknown source" on Windows/MacOS when using the installers provided by the Böcker group.
