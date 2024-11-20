@@ -32,13 +32,13 @@ Main developers of COMET are the [Böcker group](https://bio.informatik.uni-jena
 
 ### COMET (2024-08-11)
 ##### These versions include the Java Runtime Environment, so there is no need to install Java separately! Just download, install/unpack and execute.
-- for Windows (64bit): [msi](<link>) / [zip](link)
-- for Mac (64bit): [pkg](link) / [zip](link)
-- for Linux (64bit): [zip](link)
+- for Windows (64bit): [msi](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-win64.msi) / [zip](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-win64.zip)
+- for Mac (64bit): [pkg](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-osx64.pkg) / [zip](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-osx64.zip)
+- for Linux (64bit): [zip](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-linux64.zip)
 
 <!--end download-->
 
-All (including previous) releases can be found [here](https://github.com/sirius-ms/sirius/releases).
+All (including previous) releases can be found [here](https://github.com/sirius-ms/comet/releases).
 
 ### [Installation](https://v6.docs.sirius-ms.io/install)
 For  Windows and MacOS, the installer version of COMET (msi/pkg) should be preferred but might require administrator permissions.
