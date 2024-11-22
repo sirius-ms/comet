@@ -9,10 +9,10 @@ buildscript {
         mavenCentral()
     }
     dependencies {
+        classpath "gradle.plugin.com.google.cloud.artifactregistry:artifactregistry-gradle-plugin:2.2.2"
         classpath 'commons-configuration:commons-configuration:1.10'
         classpath 'com.github.viswaramamoorthy:gradle-util-plugins:0.1.0-RELEASE'
         classpath 'org.yaml:snakeyaml:1.29'
-        classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:5.2.2'
     }
 }
 
@@ -122,7 +122,6 @@ ext {
 }
 
 
-
 /*################### DISTRIBUTION STUFF ################### */
 project.ext.set("linSuffix", "linux")
 project.ext.set("winSuffix", "win")
@@ -135,6 +134,7 @@ allprojects {
     apply plugin: 'java'
     apply plugin: 'java-library'
     apply plugin: 'maven-publish'
+    apply plugin: "com.google.cloud.artifactregistry.gradle-plugin"
 
     targetCompatibility = 21
 
@@ -147,24 +147,12 @@ allprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven {//public libs only so anybody can build the frontend without login
-            url "https://bio.informatik.uni-jena.de/repository/libs-oss"
-        }
+        //this is for public sirius-ms dependencies
         maven {
-            url "https://www.ebi.ac.uk/Tools/maven/repos/content/groups/ebi-repo/"
+            name "sirius-ms-maven-public"
+            url "artifactregistry://europe-west4-maven.pkg.dev/bright-giant/maven-public"
         }
-        maven {
-            url "https://repo1.maven.org/maven2/" //glazed lists
-        }
-        maven {
-            url "http://eulergui.sourceforge.net/maven2/" //FTAlign stuff
-            allowInsecureProtocol = true
-        }
-        maven {
-            // only used for spectral hashs (Splash)
-            url "http://gose.fiehnlab.ucdavis.edu:55000/content/groups/public"
-            allowInsecureProtocol = true
-        }
+        //this is just needed to load non-public test for acceptance testing.
         repositories {
             maven {
                 url "https://gitlab.com/api/v4/groups/bright-giant/-/packages/maven"
@@ -177,7 +165,7 @@ allprojects {
                     authentication {
                         header(HttpHeaderAuthentication)
                     }
-                }else{
+                } else {
                     credentials(PasswordCredentials) {
                         username = project.findProperty("com.bright-giant.build.gitlab.username") as String
                         password = project.findProperty("com.bright-giant.build.gitlab.token") as String
@@ -189,6 +177,16 @@ allprojects {
                     }
                 }
             }
+        }
+        maven {
+            url "https://www.ebi.ac.uk/Tools/maven/repos/content/groups/ebi-repo/"
+        }
+        maven {
+            url "https://repo1.maven.org/maven2/" //glazed lists
+        }
+        maven {
+            url "http://eulergui.sourceforge.net/maven2/" //FTAlign stuff
+            allowInsecureProtocol = true
         }
     }
 
@@ -291,30 +289,10 @@ subprojects {
                     }
                 }
             }
-
             repositories {
                 maven {
-                    url = project.findProperty("io.sirius-ms.build.artifactory.url") as String
-                    name "GitLab"
-                    if (System.getenv("CI_JOB_TOKEN") != null) {
-                        credentials(HttpHeaderCredentials) {
-                            name = "Job-Token"
-                            value = System.getenv("CI_JOB_TOKEN")
-                        }
-                        authentication {
-                            header(HttpHeaderAuthentication)
-                        }
-                    }else{
-                        credentials(PasswordCredentials) {
-                            username = project.findProperty("io.sirius-ms.build.artifactory.username") as String
-                            password = project.findProperty("io.sirius-ms.build.artifactory.token") as String
-                            // the variable resides in $GRADLE_USER_HOME/gradle.properties
-                            // https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home
-                        }
-                        authentication {
-                            basic(BasicAuthentication)
-                        }
-                    }
+                    name = "BG-maven-public"
+                    url "artifactregistry://europe-west4-maven.pkg.dev/bright-giant/maven-public"
                 }
             }
         }
