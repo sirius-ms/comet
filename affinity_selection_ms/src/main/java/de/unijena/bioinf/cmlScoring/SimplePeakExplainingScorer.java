@@ -70,10 +70,10 @@ public class SimplePeakExplainingScorer implements CMLScorer<DoubleScore>{
         return new SScored<>(molecule, score);
     }
 
-    /*
+/*
     public static void main(String[] args){
         try{
-            File msFile = new File("/home/nils/Dokumente/Bioinformatik_PhD/AS-MS-Project/Data/benzimidazole/ENL161/annotation/annotated_spectra/post_filtered_spectra/manual/ENL161_spectrum_42.ms");
+            File msFile = new File("/home/nils/Dokumente/Bioinformatik_PhD/AS-MS-Project/Data/benzimidazole/ENL161/annotation/annotated_spectra/post_filtered_spectra/manual/ENL161_spectrum_170.ms");
             Ms2Experiment exp = MsIO.readExperimentFromFile(msFile).next();
 
             File bbsFile = new File("/home/nils/Dokumente/Bioinformatik_PhD/AS-MS-Project/Data/benzimidazole/ENL161/bbs_and_compounds/ENL161_CustomDB_BBs.csv");
@@ -85,14 +85,43 @@ public class SimplePeakExplainingScorer implements CMLScorer<DoubleScore>{
             HashMap<String,CMLMolecule> name2Mol = new HashMap<>();
             mols.forEach(m -> name2Mol.put(m.getName(), m));
 
-            CMLMolecule molecule = name2Mol.get("2-10-7");
+            CMLMolecule molecule = name2Mol.get("2-3-7");
 
             SimplePeakExplainingScorer scorer = new SimplePeakExplainingScorer(5, 2);
-            System.out.println(scorer.score(exp, molecule)); // expected 0.8551876379690948
+            System.out.println("Scorer:\t" + scorer.score(exp, molecule).getScore()); // expected 0.8551876379690948
+
+
+            MolecularGraph mol = new MolecularGraph(new SmilesParser(SilentChemObjectBuilder.getInstance()).parseSmiles("CC(C(=O)N)NC(=O)C1=CC2=C(C=C1)N(C(=N2)CCCCO)CCCCCC(=O)O"));
+            double[] bbMasses = new double[bbs.length];
+            for(int i = 0; i < bbs.length; i++){
+                bbMasses[i] = bbs[i][molecule.getBbsIndices()[i]].getMass();
+            }
+            PrecursorIonType ionType = exp.getPrecursorIonType().isIonizationUnknown() ? PrecursorIonType.fromString("[M+H]+") : exp.getPrecursorIonType();
+            BBBarcodeSpectrumPredictor specPred = new BBBarcodeSpectrumPredictor(mol, bbMasses, scaffold.getMass(), 2, ionType);
+            SimpleSpectrum predSpectrum = new SimpleSpectrum(specPred.predictSpectrum());
+
+            ProcessedInput processedInput = new Sirius().preprocessForMs2Analysis(exp);
+            SimpleMutableSpectrum msrdSpectrum = new SimpleMutableSpectrum();
+            List<ProcessedPeak> mergedPeaks = processedInput.getMergedPeaks();
+            mergedPeaks.removeLast();
+
+            double sumIntensity = 0d;
+            for(ProcessedPeak peak : mergedPeaks)sumIntensity += peak.getRelativeIntensity();
+            System.out.println(sumIntensity);
+
+            for(ProcessedPeak peak : mergedPeaks){
+                msrdSpectrum.addPeak(peak.getMass(), peak.getRelativeIntensity() / sumIntensity);
+            }
+
+            ModifiedCosine spectralAlign = new ModifiedCosine(new Deviation(5));
+            System.out.println("Spec_Pred:\t " + spectralAlign.score(new SimpleSpectrum(msrdSpectrum), predSpectrum, ionType.neutralMassToPrecursorMass(mol.getFormula().getMass()), ionType.neutralMassToPrecursorMass(molecule.getMass())));
+
 
         }catch(IOException | UnknownElementException e){
             e.printStackTrace();
+        } catch (InvalidSmilesException e) {
+            throw new RuntimeException(e);
         }
     }
-     */
+ */
 }
