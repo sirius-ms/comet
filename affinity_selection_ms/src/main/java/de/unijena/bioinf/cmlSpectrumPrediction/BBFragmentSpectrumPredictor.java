@@ -2,12 +2,20 @@ package de.unijena.bioinf.cmlSpectrumPrediction;
 
 import de.unijena.bioinf.ChemistryBase.chem.MolecularFormula;
 import de.unijena.bioinf.ChemistryBase.chem.PrecursorIonType;
+import de.unijena.bioinf.ChemistryBase.chem.utils.UnknownElementException;
 import de.unijena.bioinf.ChemistryBase.ms.*;
 import de.unijena.bioinf.ChemistryBase.ms.utils.SimpleMutableSpectrum;
 import de.unijena.bioinf.ChemistryBase.ms.utils.Spectrums;
+import de.unijena.bioinf.babelms.MsIO;
 import de.unijena.bioinf.datastructures.*;
+import de.unijena.bioinf.io.BuildingBlockReader;
+import de.unijena.bioinf.sirius.ProcessedInput;
+import de.unijena.bioinf.sirius.ProcessedPeak;
+import de.unijena.bioinf.sirius.Sirius;
 import lombok.Getter;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
@@ -56,7 +64,7 @@ public class BBFragmentSpectrumPredictor implements SpectrumPredictor<Peak, Ms2S
         return this.spectrum;
     }
 
-    /*
+
     public static void main(String[] args){
         try {
             // LIBRARY INIT:
@@ -87,7 +95,7 @@ public class BBFragmentSpectrumPredictor implements SpectrumPredictor<Peak, Ms2S
             CMLMolecule molecule = name2Molecule.get("2-3-7");
 
             // SPECTRUM PREDICTOR:
-            BBFragmentSpectrumPredictor spectrumPredictor = new BBFragmentSpectrumPredictor(molecule, fragmentType2Frequency, ionType, numHydrogenShifts);
+            BBFragmentSpectrumPredictor spectrumPredictor = new BBFragmentSpectrumPredictor(molecule, fragmentType2Frequency, ionType, numHydrogenShifts, 0.5);
             Ms2Spectrum<Peak> predictedSpectrum = spectrumPredictor.predictSpectrum();
 
             predictedSpectrum.forEach(p -> System.out.print("(" + p.getMass() + "," + p.getIntensity() + ")\t"));
@@ -110,5 +118,4 @@ public class BBFragmentSpectrumPredictor implements SpectrumPredictor<Peak, Ms2S
             e.printStackTrace();
         }
     }
-     */
 }
