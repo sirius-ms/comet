@@ -6,8 +6,8 @@ import de.unijena.bioinf.chemdb.annotations.StructureSearchDB;
 import de.unijena.bioinf.chemdb.custom.CustomDataSources;
 import de.unijena.bioinf.ms.gui.utils.jCheckboxList.JCheckBoxList;
 import de.unijena.bioinf.ms.gui.utils.jCheckboxList.JCheckboxListPanel;
-import de.unijena.bioinf.ms.nightsky.sdk.NightSkyClient;
-import de.unijena.bioinf.ms.nightsky.sdk.model.SearchableDatabase;
+import io.sirius.ms.sdk.SiriusClient;
+import io.sirius.ms.sdk.model.SearchableDatabase;
 import de.unijena.bioinf.ms.properties.PropertyManager;
 
 import javax.swing.*;
@@ -17,11 +17,11 @@ import java.util.Collections;
 import java.util.function.Supplier;
 
 public class DBSelectionListPanel extends JCheckboxListPanel<SearchableDatabase> {
-    private final NightSkyClient client;
+    private final SiriusClient client;
     private final SearchableDatabase bioDB;
     private final JButton bioButton;
 
-    protected DBSelectionListPanel(JCheckBoxList<SearchableDatabase> sourceList, String headline, NightSkyClient client, Supplier<Collection<SearchableDatabase>> deactivatedDBs) {
+    protected DBSelectionListPanel(JCheckBoxList<SearchableDatabase> sourceList, String headline, SiriusClient client, Supplier<Collection<SearchableDatabase>> deactivatedDBs) {
         super(sourceList, headline);
         this.client = client;
         bioDB = client.databases().getDatabase(DataSource.BIO.name(), false);
@@ -33,14 +33,14 @@ public class DBSelectionListPanel extends JCheckboxListPanel<SearchableDatabase>
             checkBoxList.uncheckAll();
             select(bioDB);});
 
-        Arrays.stream(all.getActionListeners()).forEach(l -> all.removeActionListener(l));
+        Arrays.stream(all.getActionListeners()).forEach(all::removeActionListener);
         all.addActionListener(e -> {
             checkBoxList.checkAll();
-            deactivatedDBs.get().stream().forEach(db -> checkBoxList.uncheck(db));
+            deactivatedDBs.get().forEach(checkBoxList::uncheck);
         });
     }
 
-    public static DBSelectionListPanel newInstance(String headline, NightSkyClient client, Supplier<Collection<SearchableDatabase>> deactivatedDBs) {
+    public static DBSelectionListPanel newInstance(String headline, SiriusClient client, Supplier<Collection<SearchableDatabase>> deactivatedDBs) {
         SearchableDatabase bioDB = client.databases().getDatabase(DataSource.BIO.name(), false);
         return new DBSelectionListPanel(DBSelectionList.fromSearchableDatabases(client, Collections.singleton(bioDB)), headline, client, deactivatedDBs);
     }
@@ -67,11 +67,11 @@ public class DBSelectionListPanel extends JCheckboxListPanel<SearchableDatabase>
     }
 
     public void selectFormulaSearchDBs() {
-        select(PropertyManager.DEFAULTS.createInstanceWithDefaults(StructureSearchDB.class).searchDBs);
+        select(PropertyManager.DEFAULTS.createInstanceWithDefaults(FormulaSearchDB.class).searchDBs);
     }
 
     public void selectStructureSearchDBs() {
-        select(PropertyManager.DEFAULTS.createInstanceWithDefaults(FormulaSearchDB.class).searchDBs);
+        select(PropertyManager.DEFAULTS.createInstanceWithDefaults(StructureSearchDB.class).searchDBs);
     }
 
 

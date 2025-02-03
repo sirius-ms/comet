@@ -28,10 +28,12 @@ import de.unijena.bioinf.ChemistryBase.ms.ft.FTree;
 import de.unijena.bioinf.ChemistryBase.ms.lcms.QuantificationTable;
 import de.unijena.bioinf.ms.properties.ParameterConfig;
 import de.unijena.bioinf.passatutto.Decoy;
+import de.unijena.bioinf.sirius.IdentificationResult;
 import de.unijena.bioinf.spectraldb.SpectralSearchResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface Instance {
@@ -59,7 +61,7 @@ public interface Instance {
 
     double getIonMass();
 
-    PrecursorIonType getIonType();
+    int getCharge();
 
     ProjectSpaceManager getProjectSpaceManager();
 
@@ -103,8 +105,8 @@ public interface Instance {
 
     //region adduct detection
     boolean hasDetectedAdducts();
-    @Deprecated
-    void saveDetectedAdductsAnnotation(DetectedAdducts detectedAdducts);
+    void addAndSaveAdductsBySource(Map<DetectedAdducts.Source, Iterable<PrecursorIonType>> addcutsBySource);
+    boolean removeAndSaveAdductsBySource(DetectedAdducts.Source... sources);
     void saveDetectedAdducts(de.unijena.bioinf.ms.persistence.model.core.feature.DetectedAdducts detectedAdducts);
     @Deprecated
     DetectedAdducts getDetectedAdductsAnnotation();
@@ -124,7 +126,7 @@ public interface Instance {
     void deletePassatuttoResult();
 
 
-    void saveSiriusResult(List<FTree> treesSortedByScore);
+    void saveSiriusResult(List<IdentificationResult> idResultsSortedByScore);
     boolean hasSiriusResult();
     void deleteSiriusResult();
 

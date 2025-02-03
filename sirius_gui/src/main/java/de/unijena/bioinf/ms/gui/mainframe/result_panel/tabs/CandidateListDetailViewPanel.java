@@ -24,14 +24,15 @@ package de.unijena.bioinf.ms.gui.mainframe.result_panel.tabs;
 import de.unijena.bioinf.ms.gui.SiriusGui;
 import de.unijena.bioinf.ms.gui.fingerid.CandidateListDetailView;
 import de.unijena.bioinf.ms.gui.fingerid.StructureList;
-import de.unijena.bioinf.ms.gui.mainframe.instance_panel.CompoundList;
 import de.unijena.bioinf.ms.gui.mainframe.result_panel.PanelDescription;
 import de.unijena.bioinf.ms.gui.mainframe.result_panel.ResultPanel;
+import de.unijena.bioinf.ms.gui.table.ActionList;
+import de.unijena.bioinf.ms.gui.utils.loading.Loadable;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class CandidateListDetailViewPanel extends JPanel implements PanelDescription {
+public class CandidateListDetailViewPanel extends JPanel implements PanelDescription, Loadable {
     @Override
     public String getDescription() {
         return "<html>"
@@ -49,7 +50,16 @@ public class CandidateListDetailViewPanel extends JPanel implements PanelDescrip
 
     public CandidateListDetailViewPanel(ResultPanel resultPanel, StructureList sourceList, SiriusGui gui) {
         super(new BorderLayout());
-        list = new CandidateListDetailView(resultPanel, sourceList, gui);
+        list = new CandidateListDetailView(resultPanel, sourceList, gui, instanceBean -> instanceBean.getComputedTools().isStructureSearch());
         add(list, BorderLayout.CENTER);
+    }
+
+    @Override
+    public boolean setLoading(boolean loading, boolean absolute) {
+       if (loading)
+           list.showCenterCard(ActionList.ViewState.LOADING);
+       else
+           list.showCenterCard(ActionList.ViewState.DATA);
+       return loading;
     }
 }

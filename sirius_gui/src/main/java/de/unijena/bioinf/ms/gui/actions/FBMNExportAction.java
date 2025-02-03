@@ -21,6 +21,7 @@ package de.unijena.bioinf.ms.gui.actions;
 
 import ca.odell.glazedlists.event.ListEvent;
 import ca.odell.glazedlists.swing.DefaultEventSelectionModel;
+import de.unijena.bioinf.ChemistryBase.utils.Utils;
 import de.unijena.bioinf.ms.gui.SiriusGui;
 import de.unijena.bioinf.ms.gui.configs.Icons;
 import de.unijena.bioinf.ms.gui.dialogs.ExecutionDialog;
@@ -38,7 +39,7 @@ public class FBMNExportAction extends AbstractGuiAction {
 
     public FBMNExportAction(SiriusGui gui) {
         super("FBMN Export", gui);
-        putValue(Action.LARGE_ICON_KEY, Icons.FBMN_32);
+        putValue(Action.LARGE_ICON_KEY, Icons.FBMN.derive(32,32));
         putValue(Action.SHORT_DESCRIPTION, "Export project for GNPS Feature Based Molecular Networking.");
         initListeners();
     }
@@ -53,7 +54,7 @@ public class FBMNExportAction extends AbstractGuiAction {
             }
 
             @Override
-            public void listSelectionChanged(DefaultEventSelectionModel<InstanceBean> selection, int fullSize) {
+            public void listSelectionChanged(DefaultEventSelectionModel<InstanceBean> selection, List<InstanceBean> selected, List<InstanceBean> deselected, int fullSize) {
             }
         });
     }

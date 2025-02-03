@@ -34,7 +34,7 @@ public class TracePicker {
 
     public TracePicker(ProcessedSample sample, TraceCachingStrategy cachingStrategy, TraceSegmentationStrategy segmentationStrategy) {
         this.storage = sample.getStorage();
-        setAllowedMassDeviation(new Deviation(10));
+        setAllowedMassDeviation(new Deviation(12));
         this.mapping = sample.getMapping();
         this.cache = cachingStrategy.getCacheFor(sample);
         this.segmentationStrategy = segmentationStrategy;
@@ -154,8 +154,10 @@ public class TracePicker {
         Optional<ContiguousTrace> traceFromCache = cache.getTraceFromCache(spectrumId, mz);
         if (traceFromCache.isPresent()) return traceFromCache;
         Optional<ContiguousTrace> detected = pickTrace(spectrumId, mz);
-        return detected.map(x->{
-            x.setSegments(segmentationStrategy.detectSegments(storage.getStatistics(), x).toArray(TraceSegment[]::new));
+        return detected.map(x->{ // TODO: evtl. hier schon points of interests einfügen
+            //
+            x.setSegments(segmentationStrategy.detectSegments(storage.getStatistics(), x, new int[0]).toArray(TraceSegment[]::new));
+            if (x.getSegments().length==0) x.setSegments(new TraceSegment[]{new TraceSegment(x.apex(), x.startId(), x.endId())});
             return cache.addTraceToCache(x);
         });
     }

@@ -19,23 +19,23 @@
 
 package de.unijena.bioinf.ms.gui.actions;
 
-import de.unijena.bioinf.jjobs.LoadingBackroundTask;
 import de.unijena.bioinf.ms.frontend.core.SiriusProperties;
 import de.unijena.bioinf.ms.frontend.subtools.InputFilesOptions;
 import de.unijena.bioinf.ms.gui.SiriusGui;
 import de.unijena.bioinf.ms.gui.compute.ParameterBinding;
 import de.unijena.bioinf.ms.gui.compute.jjobs.Jobs;
+import de.unijena.bioinf.ms.gui.compute.jjobs.LoadingBackroundTask;
 import de.unijena.bioinf.ms.gui.configs.Icons;
+import de.unijena.bioinf.ms.gui.dialogs.LCMSRunDialog;
 import de.unijena.bioinf.ms.gui.dialogs.StacktraceDialog;
+import de.unijena.bioinf.ms.gui.dialogs.WarningDialog;
 import de.unijena.bioinf.ms.gui.dialogs.input.ImportMSDataDialog;
 import de.unijena.bioinf.ms.gui.io.filefilter.MsBatchDataFormatFilter;
-import de.unijena.bioinf.ms.nightsky.sdk.jjobs.SseProgressJJob;
-import de.unijena.bioinf.ms.nightsky.sdk.model.DataSmoothing;
-import de.unijena.bioinf.ms.nightsky.sdk.model.Job;
-import de.unijena.bioinf.ms.nightsky.sdk.model.JobOptField;
-import de.unijena.bioinf.ms.nightsky.sdk.model.LcmsSubmissionParameters;
+import de.unijena.bioinf.ms.gui.utils.GuiUtils;
 import de.unijena.bioinf.ms.properties.PropertyManager;
 import de.unijena.bioinf.projectspace.InstanceImporter;
+import io.sirius.ms.sdk.jjobs.SseProgressJJob;
+import io.sirius.ms.sdk.model.*;
 import org.apache.commons.lang3.time.StopWatch;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,9 +45,8 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * @author Markus Fleischauer
@@ -56,8 +55,8 @@ public class ImportAction extends AbstractGuiAction {
 
     public ImportAction(SiriusGui gui) {
         super("Import", gui);
-        putValue(Action.LARGE_ICON_KEY, Icons.DOCS_32);
-        putValue(Action.SMALL_ICON, Icons.BATCH_DOC_16);
+        putValue(Action.LARGE_ICON_KEY, Icons.DOCS.derive(32,32));
+        putValue(Action.SMALL_ICON, Icons.DOCS.derive(16,16));
         putValue(Action.SHORT_DESCRIPTION, "<html>" +
                 "<p>Import measurements of:</p>" +
                 "<ul style=\"list-style-type:none;\">" +
@@ -70,7 +69,7 @@ public class ImportAction extends AbstractGuiAction {
 
     //ATTENTION Synchronizing around background tasks that block gui thread is dangerous
     @Override
-    public synchronized void actionPerformed(ActionEvent e) {
+    public void actionPerformed(ActionEvent e) {
         JFileChooser chooser = new JFileChooser(PropertyManager.getFile(SiriusProperties.DEFAULT_LOAD_DIALOG_PATH));
         chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         chooser.setMultiSelectionEnabled(true);
@@ -90,7 +89,7 @@ public class ImportAction extends AbstractGuiAction {
     }
 
     //ATTENTION Synchronizing around background tasks that block gui thread is dangerous
-    public synchronized void importOneExperimentPerLocation(@NotNull final List<File> inputFiles, Window popupOwner) {
+    public void importOneExperimentPerLocation(@NotNull final List<File> inputFiles, Window popupOwner) {
         final InputFilesOptions inputF = new InputFilesOptions();
         inputF.msInput = Jobs.runInBackgroundAndLoad(popupOwner, "Analyzing Files...", false,
                 InstanceImporter.makeExpandFilesJJob(inputFiles)).getResult();
@@ -98,22 +97,14 @@ public class ImportAction extends AbstractGuiAction {
     }
 
     //ATTENTION Synchronizing around background tasks that block gui thread is dangerous
-    public synchronized void importOneExperimentPerLocation(@NotNull final InputFilesOptions input, Window popupOwner) {
-        Map<Boolean, List<Path>> paths = Jobs.runInBackgroundAndLoad(
-                popupOwner, "Analyzing input...",
-                () -> input.msInput.msParserfiles.keySet().stream().collect(Collectors.partitioningBy(p -> {
-                    String fileName = p.getFileName().toString().toLowerCase();
-                    return fileName.endsWith(".mzml") || fileName.endsWith(".mzxml");
-                }))
-        ).getResult();
-
+    public void importOneExperimentPerLocation(@NotNull final InputFilesOptions input, Window popupOwner) {
         StopWatch watch = new StopWatch();
         watch.start();
 
         try {
-            boolean hasLCMS = paths.containsKey(true) && !paths.get(true).isEmpty();
-            boolean hasPeakLists = paths.containsKey(false) && !paths.get(false).isEmpty();
-            boolean alignAllowed = paths.get(true).size() > 1;
+            boolean hasLCMS = !input.msInput.lcmsFiles.isEmpty();
+            boolean hasPeakLists = !input.msInput.msParserfiles.isEmpty();
+            boolean alignAllowed = input.msInput.lcmsFiles.size() > 1;
 
             if (!hasLCMS && !hasPeakLists)
                 return;
@@ -124,29 +115,26 @@ public class ImportAction extends AbstractGuiAction {
                 parameters.setAlignLCMSRuns(false);
 
             // show dialog
-            ImportMSDataDialog dialog = new ImportMSDataDialog(popupOwner, hasLCMS, hasLCMS && paths.get(true).size() > 1, hasPeakLists);
-            if (!dialog.isSuccess())
-                return;
+            if (hasPeakLists || alignAllowed) {
+                ImportMSDataDialog dialog = new ImportMSDataDialog(popupOwner, hasLCMS, alignAllowed, hasPeakLists);
+                if (!dialog.isSuccess())
+                    return;
 
-            if (hasLCMS) {
-                ParameterBinding binding = dialog.getParamterBinding();
-                binding.getOptBoolean("align").ifPresent(parameters::setAlignLCMSRuns);
-                binding.getOpt("tag").ifPresent(parameters::setTag);
-                binding.getOpt("filter").map(DataSmoothing::valueOf).ifPresent(parameters::setFilter);
-                binding.getOptDouble("sigma").ifPresent(parameters::setGaussianSigma);
-                binding.getOptInt("scale").ifPresent(parameters::setWaveletScale);
+                if (hasLCMS) {
+                    ParameterBinding binding = dialog.getParamterBinding();
+                    binding.getOptBoolean("align").ifPresent(parameters::setAlignLCMSRuns);
+                }
             }
 
             // handle LC/MS files
             if (hasLCMS) {
-                List<Path> lcmsPaths = paths.get(true);
                 LoadingBackroundTask<Job> task = gui.applySiriusClient((c, pid) -> {
                     Job job = c.projects().importMsRunDataAsJobLocally(pid,
                             parameters,
-                            lcmsPaths.stream().map(Path::toAbsolutePath).map(Path::toString).toList(),
+                            input.msInput.lcmsFiles.keySet().stream().map(Path::toAbsolutePath).map(Path::toString).toList(),
                             List.of(JobOptField.PROGRESS)
                     );
-                    return LoadingBackroundTask.runInBackground(gui.getMainFrame(), "Importing LC/MS data...", null, new SseProgressJJob(gui.getSiriusClient(), pid, job));
+                    return Jobs.runInBackgroundAndLoad(gui.getMainFrame(), "Import, find & align...", new SseProgressJJob(gui.getSiriusClient(), pid, job));
                 });
 
                 task.awaitResult();
@@ -156,18 +144,30 @@ public class ImportAction extends AbstractGuiAction {
             if (hasPeakLists) {
                 LoadingBackroundTask<Job> task = gui.applySiriusClient((c, pid) -> {
                     Job job = c.projects().importPreprocessedDataAsJobLocally(pid,
-                            paths.get(false).stream().map(Path::toAbsolutePath).map(Path::toString).toList(),
+                            input.msInput.msParserfiles.keySet().stream().map(Path::toAbsolutePath).map(Path::toString).toList(),
                             PropertyManager.getBoolean("de.unijena.bioinf.sirius.ui.ignoreFormulas", false),
                             true,
                             List.of(JobOptField.PROGRESS)
                     );
-                    return LoadingBackroundTask.runInBackground(gui.getMainFrame(), "Importing MS data...", null, new SseProgressJJob(gui.getSiriusClient(), pid, job));
+                    return Jobs.runInBackgroundAndLoad(gui.getMainFrame(), "Import MS data...", new SseProgressJJob(gui.getSiriusClient(), pid, job));
                 });
                 task.awaitResult();
             }
 
-        } catch (ExecutionException e) {
-            new StacktraceDialog(gui.getMainFrame(), "Error when importing data! Cause: " + e.getMessage(), e.getCause());
+            if (hasLCMS) {
+                List<Run> runs = gui.applySiriusClient((client, pid) -> client.runs().getRunPageExperimental(pid, 0, Integer.MAX_VALUE, null, List.of(RunOptField.TAGS)).getContent());
+                if (runs != null && runs.size() > 1) {
+                    new LCMSRunDialog(mainFrame, gui, runs, false);
+                }
+            }
+
+        } catch (Exception e) {
+            String m = Objects.requireNonNullElse(e.getMessage(), "");
+            Stream.of("ProjectTypeException:", "ProjectStateException:").filter(m::contains).findFirst().ifPresentOrElse(
+                    extText -> Jobs.runEDTLater(() -> new WarningDialog(gui.getMainFrame(), extText, GuiUtils.formatAndStripToolTip(m.substring(m.lastIndexOf(extText) + extText.length()).split(" \\| ")[0]), null)),
+                    () -> Jobs.runEDTLater(() -> new StacktraceDialog(gui.getMainFrame(),
+                            GuiUtils.formatAndStripToolTip("Data import failed. This project may be incomplete or corrupted.", "We recommend discontinuing its use.", "", e.getMessage()), e.getCause()))
+            );
         }
     }
 }

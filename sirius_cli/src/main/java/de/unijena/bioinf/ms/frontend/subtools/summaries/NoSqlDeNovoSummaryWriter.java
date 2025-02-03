@@ -38,6 +38,7 @@ class NoSqlDeNovoSummaryWriter extends SummaryTable {
             "CSI:FingerIDScore",
             "ModelScore",
             "ZodiacScore",
+            "SiriusScoreNormalized",
             "SiriusScore",
             "molecularFormula",
             "adduct",
@@ -52,7 +53,8 @@ class NoSqlDeNovoSummaryWriter extends SummaryTable {
             "retentionTimeInMinutes",
             "formulaId",
             "alignedFeatureId",
-            "mappingFeatureId");
+            "mappingFeatureId",
+            "overallFeatureQuality");
 
     public NoSqlDeNovoSummaryWriter(SummaryTableWriter writer) {
         super(writer);
@@ -71,6 +73,7 @@ class NoSqlDeNovoSummaryWriter extends SummaryTable {
         row.add(match.getCsiScore());
         row.add(match.getModelScore());
         row.add(fc.getZodiacScore());
+        row.add(fc.getSiriusScoreNormalized());
         row.add(fc.getSiriusScore());
         row.add(fc.getMolecularFormula().toString());
         row.add(fc.getAdduct().toString());
@@ -87,7 +90,8 @@ class NoSqlDeNovoSummaryWriter extends SummaryTable {
 
         row.add(String.valueOf(fc.getFormulaId()));
         row.add(String.valueOf(f.getAlignedFeatureId()));
-        row.add(Objects.requireNonNullElse(f.getExternalFeatureId(), String.valueOf(f.getAlignedFeatureId())));
+        row.add(getMappingIdOrFallback(f));
+        row.add(f.getDataQuality());
 
         writer.writeRow(row);
     }

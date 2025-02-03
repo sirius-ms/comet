@@ -22,10 +22,10 @@ package de.unijena.bioinf.ms.gui.spectral_matching;
 
 import de.unijena.bioinf.ms.frontend.core.SiriusPCS;
 import de.unijena.bioinf.ms.frontend.subtools.spectra_search.SpectraSearchSubtoolJob;
-import de.unijena.bioinf.ms.nightsky.sdk.model.BasicSpectrum;
-import de.unijena.bioinf.ms.nightsky.sdk.model.DBLink;
-import de.unijena.bioinf.ms.nightsky.sdk.model.SpectralLibraryMatch;
-import de.unijena.bioinf.ms.nightsky.sdk.model.SpectralLibraryMatchOptField;
+import io.sirius.ms.sdk.model.BasicSpectrum;
+import io.sirius.ms.sdk.model.DBLink;
+import io.sirius.ms.sdk.model.SpectralLibraryMatch;
+import io.sirius.ms.sdk.model.SpectralLibraryMatchOptField;
 import de.unijena.bioinf.projectspace.InstanceBean;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -44,6 +44,12 @@ public class SpectralMatchBean implements SiriusPCS, Comparable<SpectralMatchBea
     private String queryName;
 
     private InstanceBean instance = null;
+
+    /**
+     * Corresponds to top molecular structure database hit (of a similar hit based on MCES distance in approximate mode)
+     */
+    @Getter
+    private boolean matchesTopStructureHit;
 
     public SpectralMatchBean(SpectralLibraryMatch match, InstanceBean instance) {
         this.match = match;
@@ -94,5 +100,15 @@ public class SpectralMatchBean implements SiriusPCS, Comparable<SpectralMatchBea
 
     public int getRank() {
         return Optional.ofNullable(getMatch().getRank()).orElse(0);
+    }
+
+    public InstanceBean getParentInstance() {
+        return instance;
+    }
+
+    protected void setMatchesTopStructureHit(boolean matchesTopStructureHit) {
+        boolean old = this.matchesTopStructureHit;
+        this.matchesTopStructureHit = matchesTopStructureHit;
+        pcs.firePropertyChange("matchesTopStructureHit", old, this.matchesTopStructureHit);
     }
 }

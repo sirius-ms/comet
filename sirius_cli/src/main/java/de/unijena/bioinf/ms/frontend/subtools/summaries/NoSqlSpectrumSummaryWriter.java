@@ -54,7 +54,8 @@ public class NoSqlSpectrumSummaryWriter extends SummaryTable {
             "retentionTimeInSeconds",
             "retentionTimeInMinutes",
             "alignedFeatureId",
-            "providedFeatureId");
+            "providedFeatureId",
+            "overallFeatureQuality");
 
     public NoSqlSpectrumSummaryWriter(SummaryTableWriter writer) {
         super(writer);
@@ -86,8 +87,13 @@ public class NoSqlSpectrumSummaryWriter extends SummaryTable {
         else
             row.add(reference.getMsLevel());
 
-        if (reference == null || reference.getCollisionEnergy() == null)
+        if (reference == null)
             row.add("N/A");
+        else if (reference.getCollisionEnergy() == null)
+            if (reference.getCe() == null)
+                row.add("N/A");
+            else
+                row.add(reference.getCe());
         else
             row.add(reference.getCollisionEnergy().toString());
 
@@ -134,7 +140,8 @@ public class NoSqlSpectrumSummaryWriter extends SummaryTable {
         row.add(Optional.ofNullable(f.getRetentionTime()).map(rt -> Math.round(rt.getMiddleTime())).orElse(null));
         row.add(Optional.ofNullable(f.getRetentionTime()).map(rt -> rt.getMiddleTime() / 60d).orElse(null));
         row.add(String.valueOf(match.getAlignedFeatureId()));
-        row.add(Objects.requireNonNullElse(f.getExternalFeatureId(), String.valueOf(match.getAlignedFeatureId())));
+        row.add(getMappingIdOrFallback(f));
+        row.add(f.getDataQuality());
 
         writer.writeRow(row);
     }

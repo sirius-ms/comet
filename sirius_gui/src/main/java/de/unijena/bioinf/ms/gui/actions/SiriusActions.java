@@ -20,6 +20,7 @@
 package de.unijena.bioinf.ms.gui.actions;
 
 import ca.odell.glazedlists.swing.AdvancedListSelectionModel;
+import de.unijena.bioinf.ChemistryBase.utils.Utils;
 import de.unijena.bioinf.ms.gui.SiriusGui;
 import de.unijena.bioinf.ms.gui.mainframe.MainFrame;
 import de.unijena.bioinf.projectspace.InstanceBean;
@@ -56,7 +57,6 @@ public enum SiriusActions {
 
     IMPORT_EXP_BATCH(ImportAction.class),
     DELETE_EXP(DeleteExperimentAction.class),
-    CHANGE_ADDCUCT_EXP(ChangeAdductAction.class),
     SUMMARIZE_EXP(SummarizeSelectedAction.class),
 
     NEW_WS(ProjectCreateAction.class),
@@ -67,9 +67,11 @@ public enum SiriusActions {
 
     SHOW_SETTINGS(ShowSettingsDialogAction.class),
     OPEN_ONLINE_DOCUMENTATION(OpenOnlineDocumentationAction.class), //frame
+    QUICKSTART_ONLINE_DOCUMENTATION(OpenQuickstartDocumentationAction.class), //frame
     SHOW_ABOUT(ShowAboutDialogAction.class),
     SHOW_JOBS(ShowJobsDialogAction.class),
     SHOW_DB(ShowDBDialogAction.class),
+    SHOW_SAMPLE(ShowLCMSRunsDialogAction.class),
     SHOW_LOG(OpenLogAction.class),
 
     REGISTER_EXPLORER(ExplorerLicRegisterAction.class),

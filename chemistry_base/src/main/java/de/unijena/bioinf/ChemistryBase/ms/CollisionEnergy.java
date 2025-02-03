@@ -23,7 +23,6 @@ package de.unijena.bioinf.ChemistryBase.ms;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import de.unijena.bioinf.ChemistryBase.utils.SimpleSerializers;
 import de.unijena.bioinf.ChemistryBase.utils.Utils;
 import org.jetbrains.annotations.Nullable;
@@ -107,8 +106,7 @@ public class CollisionEnergy implements Serializable {
             if (value == null || value.isBlank())
                 return null;
             return fromString(value);
-        } catch (NumberFormatException e) {
-            LoggerFactory.getLogger(CollisionEnergy.class).error("Could not parse Collision Energy '" + value + "'. Try ignoring...");
+        } catch (Exception e) {
             return null;
         }
     }
@@ -164,8 +162,14 @@ public class CollisionEnergy implements Serializable {
     }
 
     public static String stringify(double minEnergy) {
-        if (Math.abs((int) minEnergy - minEnergy) < 1e-12) return String.valueOf((int) minEnergy);
-        return String.valueOf(minEnergy);
+      return stringify(minEnergy, -1);
+    }
+
+    public static String stringify(double minEnergy, int decimal) {
+        if (Math.abs((int) minEnergy - minEnergy) < 1e-12)
+            return String.valueOf((int) minEnergy);
+        return decimal < 0 ? String.valueOf(minEnergy)
+                : String.format("%." + decimal + "f", minEnergy);
     }
 
     public static Comparator<CollisionEnergy> getMinEnergyComparator() {
@@ -241,7 +245,7 @@ public class CollisionEnergy implements Serializable {
     }
 
     public CollisionEnergy merge(CollisionEnergy other) {
-        return new CollisionEnergy(Math.min(minEnergy, other.minEnergy), Math.max(maxEnergy, other.maxEnergy),Math.min(minEnergySource,other.minEnergySource),Math.max(maxEnergySource,other.maxEnergySource));
+        return new CollisionEnergy(Math.min(minEnergy, other.minEnergy), Math.max(maxEnergy, other.maxEnergy), Math.min(minEnergySource, other.minEnergySource), Math.max(maxEnergySource, other.maxEnergySource));
     }
 
     @Override
@@ -256,15 +260,19 @@ public class CollisionEnergy implements Serializable {
 
     @Override
     public String toString() {
-        if (minEnergy == maxEnergy && minEnergySource == maxEnergySource)
-            return stringify(minEnergySource) + " eV" +
-                    (Double.isNaN(minEnergy) ? "" : " (corrected " + stringify(minEnergy) + " eV)");
-        if (minEnergy != maxEnergy && minEnergySource == maxEnergySource)
-            return stringify(minEnergySource) + " eV" +
-                    (Double.isNaN(minEnergy) || Double.isNaN(maxEnergy) ? "" : " (corrected " + stringify(minEnergy) + " - " + stringify(maxEnergy) + " eV)");
+        return toString(-1);
+    }
 
-        return stringify(minEnergySource) + " - " + stringify(maxEnergySource) + " eV" +
-                (Double.isNaN(minEnergy) || Double.isNaN(maxEnergy) ? "" : " (corrected " + stringify(minEnergy) + " - " + stringify(maxEnergy) + " eV)");
+    public String toString(int decimal) {
+        if (minEnergy == maxEnergy && minEnergySource == maxEnergySource)
+            return stringify(minEnergySource, decimal) + " eV" +
+                    (Double.isNaN(minEnergy) ? "" : " (corrected " + stringify(minEnergy, decimal) + " eV)");
+        if (minEnergy != maxEnergy && minEnergySource == maxEnergySource)
+            return stringify(minEnergySource, decimal) + " eV" +
+                    (Double.isNaN(minEnergy) || Double.isNaN(maxEnergy) ? "" : " (corrected " + stringify(minEnergy, decimal) + " - " + stringify(maxEnergy, decimal) + " eV)");
+
+        return stringify(minEnergySource, decimal) + " - " + stringify(maxEnergySource, decimal) + " eV" +
+                (Double.isNaN(minEnergy) || Double.isNaN(maxEnergy) ? "" : " (corrected " + stringify(minEnergy, decimal) + " - " + stringify(maxEnergy, decimal) + " eV)");
     }
 
     @Override
@@ -284,8 +292,8 @@ public class CollisionEnergy implements Serializable {
         return NONE;
     }
 
-    public static CollisionEnergy copyWithoutCorrection(CollisionEnergy ce){
-        return new CollisionEnergy(ce.minEnergySource,ce.maxEnergySource);
+    public static CollisionEnergy copyWithoutCorrection(CollisionEnergy ce) {
+        return new CollisionEnergy(ce.minEnergySource, ce.maxEnergySource);
     }
 
     public boolean isRamp() {

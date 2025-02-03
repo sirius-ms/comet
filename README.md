@@ -1,18 +1,19 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blueviolet.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Generic badge](https://img.shields.io/badge/Version-6.0.4-informational.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/Version-6.1.0-informational.svg)](https://shields.io/)
 [![Build and Publish](https://github.com/sirius-ms/sirius/actions/workflows/distribute.yaml/badge.svg?branch=release-4-pre)](https://github.com/sirius-ms/sirius/actions/workflows/distribute.yaml)
+[![Join community chat at https://gitter.im/sirius-ms/general](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/sirius-ms/general?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 *<span style="color: #808080;">Our methods are offered to the scientific community as freely available resources. (Re-)distribution of the
 methods, in whole or in part, for commercial purposes is prohibited.
-CSI:FingerID and CANOPUS web services hosted by the [Böcker group](https://bio.informatik.uni-jena.de/) are for academic research and education use only.
+The SIRIUS web services (CSI:FingerID, CANOPUS, MSNovelist and others) hosted by the [Böcker group](https://bio.informatik.uni-jena.de/) are for academic research and education use only.
 Please review the [terms of service](https://bio.informatik.uni-jena.de/terms-of-service-fsu-csi) of the academic version for details.
 For non-academic users, the [Bright Giant GmbH](https://bright-giant.com) provides licenses and all related services.
 We ask that users of our tools cite the corresponding papers in any resulting publications.</span>*
 
 SIRIUS is a java-based software framework for the analysis of LC-MS/MS data of metabolites and other "small molecules of biological interest".
-SIRIUS integrates a collection of our tools, including CSI:FingerID (with [COSMIC](https://bio.informatik.uni-jena.de/software/cosmic/)), [ZODIAC](https://bio.informatik.uni-jena.de/software/zodiac/) and
+SIRIUS integrates a collection of our tools, including CSI:FingerID (with [COSMIC](https://bio.informatik.uni-jena.de/software/cosmic/)), [ZODIAC](https://bio.informatik.uni-jena.de/software/zodiac/),
 [CANOPUS](https://bio.informatik.uni-jena.de/software/canopus/). In particular, both the
-graphical user interface and the command line version of SIRIUS seamlessly integrate the CSI:FingerID and CANOPUS web services.
+graphical user interface and the command line version of SIRIUS seamlessly integrate the CSI:FingerID, CANOPUS and MSNovelist web services.
 
 Main developers of SIRIUS are the [Böcker group](https://bio.informatik.uni-jena.de/) and the [Bright Giant GmbH](https://bright-giant.com)
 
@@ -22,24 +23,18 @@ Main developers of SIRIUS are the [Böcker group](https://bio.informatik.uni-jen
 - [Online Documentation](https://v6.docs.sirius-ms.io/)
 - [Video tutorials](https://www.youtube.com/channel/UCIbW_ZFSADRUQ-T5nmgU4VA/featured)
 - [Bookchapter on using SIRIUS 4](https://doi.org/10.1007/978-1-0716-0239-3_11) ([Preprint](https://bio.informatik.uni-jena.de/wp/wp-content/uploads/2020/12/SIRIUS4_book_chapter_preprint-2.pdf)) -- does not cover the new LC-MS/MS processing option
-- [Demo data](data/demo-data.zip)
+- [Demo data](https://github.com/sirius-ms/sirius/raw/refs/heads/stable/data/demo-data.zip?download=)
 - [Logos for publications and presentations](https://bio.informatik.uni-jena.de/software/sirius/sirius-logos/)
 
 <!--begin download-->
 
-### SIRIUS+CSI:FingerID GUI and CLI - Version 6.0.4 (2024-08-11)
+### SIRIUS+CSI:FingerID GUI and CLI - Version 6.1.0 (2025-01-03)
 ##### These versions include the Java Runtime Environment, so there is no need to install Java separately! Just download, install/unpack and execute.
-- for Windows (64bit): [msi](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-win64.msi) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-win64.zip)
-- for Mac (64bit): [pkg](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-osx64.pkg) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-osx64.zip)
-- for Linux (64bit): [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-linux64.zip)
-
-<!--
-### SIRIUS+CSI:FingerID Command-Line Interface only - Version 6.0.4 (2024-08-11)
-##### These versions include the Java Runtime Environment, so there is no need to install Java separately! Just download, install/unpack and execute.
-- for Windows (64bit): [msi](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-win64-headless.msi) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-win64-headless.zip)
-- for Mac (64bit): [pkg](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-osx64-headless.pkg) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-osx64-headless.zip)
-- for Linux (64bit): [zip](https://github.com/sirius-ms/sirius/releases/download/v6.0.4/sirius-6.0.4-linux64-headless.zip)
--->
+- for Windows (x86-64/amd64/x64): [msi](https://github.com/sirius-ms/sirius/releases/download/v6.1.0/sirius-6.1.0-win-x64.msi) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.1.0/sirius-6.1.0-win-x64.zip)
+- for Mac (x86-64/amd64/x64): [pkg](https://github.com/sirius-ms/sirius/releases/download/v6.1.0/sirius-6.1.0-macos-x64.pkg) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.1.0/sirius-6.1.0-macos-x64.zip)
+- for Mac (arm64/aarch64/apple silicon): [pkg](https://github.com/sirius-ms/sirius/releases/download/v6.1.0/sirius-6.1.0-macos-arm64.pkg) / [zip](https://github.com/sirius-ms/sirius/releases/download/v6.1.0/sirius-6.1.0-macos-arm64.zip)
+- for Linux (x86-64/amd64/x64): [zip](https://github.com/sirius-ms/sirius/releases/download/v6.1.0/sirius-6.1.0-linux-x64.zip)
+- for Linux (arm64/aarch64): [zip](https://github.com/sirius-ms/sirius/releases/download/v6.1.0/sirius-6.1.0-linux-arm64.zip)
 
 
 <!--end download-->
@@ -47,14 +42,8 @@ Main developers of SIRIUS are the [Böcker group](https://bio.informatik.uni-jen
 All (including previous) releases can be found [here](https://github.com/sirius-ms/sirius/releases).
 
 ### [Installation](https://v6.docs.sirius-ms.io/install)
-For  Windows and MacOS, the installer version of SIRIUS (msi/pkg) should be preferred but might require administrator permissions.
-
-Since we do not pay Microsoft/Apple for certification, you might have to confirm that you want to trust "software from
-an unknown source" on Windows/MacOS when using the installers provided by the Böcker group.
-Therefore, we highly recommend using the [**signed** installers](https://github.com/bright-giant/sirius/releases) provided by
-[Bright Giant](https://bright-giant.com) (also linked above).
-These installers ease the installation process by triggering no (or less) security issues of the respective OS.
-
+For Windows and MacOS, the installer version of SIRIUS (msi/pkg) should be preferred but might require administrator permissions.
+These installer packages are signed by [Bright Giant](https://bright-giant.com) to verify the package provider’s identity, and should therefore trigger no or only mild security warnings from the operating system during installation.
 See the [documentation](https://v6.docs.sirius-ms.io/install) for details.
 
 
@@ -67,10 +56,14 @@ may be required.
 
 ### [Sources on GitHub](https://github.com/sirius-ms)
 - [SIRIUS](https://github.com/sirius-ms/sirius)
-- [SIRIUS-API Java SDK](sirius_nightsky_sdk/sirius_nightsky_sdk.openapi/README.md)
 - [SIRIUS-API SDKs](https://github.com/sirius-ms/sirius-client-openAPI)
+- [SIRIUS-API Java SDK](sirius-sdk/README.md)
 
 ### [Changelog](https://v6.docs.sirius-ms.io/changelog/)
+
+### Contact
+- To get news, help or ask questions please join our [Gitter Community `#sirius-ms:gitter.im`](https://matrix.to/#/#sirius-ms:gitter.im).
+- For bug reports or feature request please use the issues on our [GitHub](https://github.com/sirius-ms/sirius/issues). Or check the [documentation](https://v6.docs.sirius-ms.io/bugs/) for further information about this topic.
 
 ### Integration of CSI:FingerID, CANOPUS and MSNovelist
 
@@ -127,7 +120,7 @@ Martin A. Hoffmann, Louis-Félix Nothias, Marcus Ludwig, Markus Fleischauer, Emi
 
 Kai Dührkop, Louis-Félix Nothias, Markus Fleischauer, Raphael Reher, Marcus Ludwig, Martin A. Hoffmann, Daniel Petras, William H. Gerwick, Juho Rousu, Pieter C. Dorrestein and Sebastian Böcker.
 [Systematic classification of unknown metabolites using high-resolution fragmentation mass spectra.](https://doi.org/10.1038/s41587-020-0740-8)
-*Nature Biotechnology*, 2020. (Cite if you are using *CANOPUS*)
+*Nature Biotechnology*, 2021. (Cite if you are using *CANOPUS*)
 
 Yannick Djoumbou Feunang, Roman Eisner, Craig Knox, Leonid Chepelev, Janna Hastings, Gareth Owen, Eoin Fahy, Christoph Steinbeck, Shankar Subramanian, Evan Bolton, Russell Greiner, David S. Wishart.
 [ClassyFire: automated chemical classification with a comprehensive, computable taxonomy.](https://doi.org/10.1186/s13321-016-0174-y)

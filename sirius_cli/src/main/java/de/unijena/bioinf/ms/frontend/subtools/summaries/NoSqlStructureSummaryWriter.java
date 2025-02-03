@@ -39,6 +39,7 @@ class NoSqlStructureSummaryWriter extends SummaryTable {
             "ConfidenceScoreApproximate",
             "CSI:FingerIDScore",
             "ZodiacScore",
+            "SiriusScoreNormalized",
             "SiriusScore",
             "molecularFormula",
             "adduct",
@@ -57,7 +58,8 @@ class NoSqlStructureSummaryWriter extends SummaryTable {
             "retentionTimeInMinutes",
             "formulaId",
             "alignedFeatureId",
-            "mappingFeatureId");
+            "mappingFeatureId",
+            "overallFeatureQuality");
 
     NoSqlStructureSummaryWriter(SummaryTableWriter writer) {
         super(writer);
@@ -77,6 +79,7 @@ class NoSqlStructureSummaryWriter extends SummaryTable {
         row.add(searchResult.getConfidenceApprox());
         row.add(match.getCsiScore());
         row.add(fc.getZodiacScore());
+        row.add(fc.getSiriusScoreNormalized());
         row.add(fc.getSiriusScore());
         row.add(fc.getMolecularFormula().toString());
         row.add(fc.getAdduct().toString());
@@ -98,7 +101,8 @@ class NoSqlStructureSummaryWriter extends SummaryTable {
 
         row.add(String.valueOf(fc.getFormulaId()));
         row.add(String.valueOf(f.getAlignedFeatureId()));
-        row.add(Objects.requireNonNullElse(f.getExternalFeatureId(), String.valueOf(f.getAlignedFeatureId())));
+        row.add(getMappingIdOrFallback(f));
+        row.add(f.getDataQuality());
 
         writer.writeRow(row);
     }

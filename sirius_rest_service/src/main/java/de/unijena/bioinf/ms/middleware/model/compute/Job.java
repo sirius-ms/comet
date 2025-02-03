@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -31,28 +32,32 @@ import java.util.List;
 /**
  * Identifier created by the SIRIUS Nightsky API for a newly created Job.
  * Object can be enriched with Job status/progress information ({@link JobProgress}) and/or Job command information.
+ * This is a return value of the API. So nullable values can also be NOT_REQUIRED to allow for easy removal.
  */
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Job {
-    @Schema(enumAsRef = true, name = "JobOptField", nullable = true)
+    @Schema(name = "JobOptField", nullable = true)
     public enum OptField {none, command, progress, affectedIds}
 
     /**
      * Unique identifier to access the job via the API
      */
     String id;
+
     /**
      * Command string of the executed Task
      */
     @Nullable
+    @Schema(nullable = true, requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     String command;
 
     /**
      * Optional progress information of this job
      */
     @Nullable
+    @Schema(nullable = true, requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     JobProgress progress;
 
     /**
@@ -61,6 +66,7 @@ public class Job {
      * If this job is creating compounds (e.g. data import jobs) this value will be NULL until the jobs has finished
      */
     @Nullable
+    @Schema(nullable = true, requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     List<String> affectedCompoundIds;
 
     /**
@@ -68,5 +74,15 @@ public class Job {
      * If this job is creating features (e.g. data import jobs) this value will be NULL until the jobs has finished
      */
     @Nullable
+    @Schema(nullable = true, requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     List<String> affectedAlignedFeatureIds;
+
+    /**
+     * Effect this job has. The affected ids are added, removed or modified.
+     * Null if job does not affect features/compounds
+     * Not available/null if affected Ids are not requested
+     */
+    @NotNull
+    @Schema(nullable = true, requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    JobEffect jobEffect;
 }

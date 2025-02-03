@@ -26,8 +26,8 @@ import de.unijena.bioinf.ChemistryBase.ms.ft.FTree;
 import de.unijena.bioinf.babelms.json.FTJsonReader;
 import de.unijena.bioinf.ms.annotations.DataAnnotation;
 import de.unijena.bioinf.ms.frontend.core.SiriusPCS;
-import de.unijena.bioinf.ms.nightsky.sdk.NightSkyClient;
-import de.unijena.bioinf.ms.nightsky.sdk.model.*;
+import io.sirius.ms.sdk.SiriusClient;
+import io.sirius.ms.sdk.model.*;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import org.apache.commons.lang3.function.TriFunction;
@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -99,7 +100,7 @@ public class FormulaResultBean implements SiriusPCS, Comparable<FormulaResultBea
             public void propertyChange(PropertyChangeEvent evt) {
                 if (evt.getNewValue() != null && evt.getNewValue() instanceof ProjectChangeEvent pce) {
                     if (sourceCandidate.getFormulaId().equals(pce.getFormulaId())) {
-                        if (pce.getEventType() == ProjectChangeEvent.EventTypeEnum.RESULT_UPDATED) {
+                        if (pce.getEventType() == ProjectEventType.RESULT_UPDATED) {
                             synchronized (FormulaResultBean.this) {
                                 FormulaResultBean.this.sourceCandidate = null;
                                 FormulaResultBean.this.canopusResults = null;
@@ -120,7 +121,7 @@ public class FormulaResultBean implements SiriusPCS, Comparable<FormulaResultBea
         registerProjectSpaceListeners();
     }
 
-    public NightSkyClient getClient() {
+    public SiriusClient getClient() {
         return getParentInstance().getClient();
     }
 
@@ -227,13 +228,17 @@ public class FormulaResultBean implements SiriusPCS, Comparable<FormulaResultBea
         if (PrecursorIonType.fromString(ionType).isIonizationUnknown()) {
             return mf.toString();
         } else {
-            return mf.toString() + " " + niceName;
+            return mf + " " + niceName;
         }
     }
 
 
     public Optional<Integer> getRank() {
         return Optional.ofNullable(getFormulaCandidate().getRank());
+    }
+
+    public Optional<Double> getSiriusScoreNormalized() {
+        return Optional.ofNullable(getFormulaCandidate().getSiriusScoreNormalized());
     }
 
     public Optional<Double> getSiriusScore() {
@@ -283,7 +288,7 @@ public class FormulaResultBean implements SiriusPCS, Comparable<FormulaResultBea
     public synchronized Optional<String> getFTreeJson() {
         if (this.ftreeJson == null)
             this.ftreeJson = Optional.ofNullable(withIds((pid, fid, foid) ->
-                    getClient().features().getSiriusFragTreeWithResponseSpec(pid, fid, foid)
+                    getClient().features().getSiriusFragTreeInternalWithResponseSpec(pid, fid, foid)
                             .bodyToMono(String.class).onErrorComplete().block()
             ));
 
@@ -362,11 +367,9 @@ public class FormulaResultBean implements SiriusPCS, Comparable<FormulaResultBea
         return Optional.ofNullable(getCanopusResults().second());
     }
 
+    private final static Comparator<Integer> RANK_COMPARATOR = Comparator.nullsLast(Comparator.naturalOrder());
     @Override
     public int compareTo(FormulaResultBean o) {
-        return Double.compare(
-                o.getSiriusScore().orElse(Double.NaN),
-                getSiriusScore().orElse(Double.NaN)
-        );
+        return RANK_COMPARATOR.compare(getRank().orElse(null), o.getRank().orElse(null));
     }
 }

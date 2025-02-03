@@ -34,8 +34,8 @@ import de.unijena.bioinf.datastructures.CMLCandidates;
 import de.unijena.bioinf.datastructures.OrderedCombinatorialMoleculeLibrary;
 import de.unijena.bioinf.ms.gui.properties.GuiProperties;
 import de.unijena.bioinf.ms.gui.utils.asms.CMLFilterModelOptions;
-import de.unijena.bioinf.ms.nightsky.sdk.model.*;
 import de.unijena.bioinf.ms.properties.PropertyManager;
+import io.sirius.ms.sdk.model.*;
 import de.unijena.bioinf.projectspace.FormulaResultBean;
 import de.unijena.bioinf.projectspace.InstanceBean;
 import de.unijena.bioinf.sirius.ProcessedPeak;
@@ -86,14 +86,17 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
             return false;
         }
 
-        if (filterModel.isHasMs1() && !item.getSourceFeature().isHasMs1())
+        if (filterModel.isHasMs1() && Boolean.FALSE.equals(item.getSourceFeature().isHasMs1()))
             return false;
 
-        if (filterModel.isHasMsMs() && !item.getSourceFeature().isHasMsMs())
+        if (filterModel.isHasMsMs() && Boolean.FALSE.equals(item.getSourceFeature().isHasMsMs()))
             return false;
 
-        if (filterModel.isAdductFilterActive() && !filterModel.getAdducts().contains(item.getIonType()))
-            return false;
+        if (filterModel.isAdductFilterActive()) {
+            Set<PrecursorIonType> itemAdducts = item.getDetectedAdductsOrUnknown();
+            if (filterModel.getSelectedAdducts().stream().noneMatch(itemAdducts::contains))
+                return false;
+        }
 
         if (item.getSourceFeature().getQuality() != null) //always allow to pass the filter if now quality data is available
             if (filterModel.getFeatureQualityFilter().isEnabled() && !filterModel.getFeatureQualityFilter().isQualitySelected(item.getSourceFeature().getQuality()))
@@ -103,8 +106,11 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
     }
 
     private boolean anyIOIntenseFilterMatches(InstanceBean item, CompoundFilterModel filterModel) {
+        if (filterModel.getBlankSubtraction().isEnabled())
+            if (!matchesFoldChangeFilter(item, filterModel)) return false;
+
         if (filterModel.getIoQualityFilters().stream().anyMatch(CompoundFilterModel.QualityFilter::isEnabled)) {
-            AlignedFeatureQuality qualityReport = item.getQualityReport();
+            AlignedFeatureQualityExperimental qualityReport = item.getQualityReport();
             if (qualityReport != null) { //always allow to pass the filter if now quality data is available
                 Map<String, Category> categories = qualityReport.getCategories();
                 for (CompoundFilterModel.QualityFilter filter : filterModel.getIoQualityFilters()) {
@@ -126,9 +132,6 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
 
         if (filterModel.isDbFilterEnabled())
             if (!matchesDBFilter(item, filterModel)) return false;
-
-        if (filterModel.isTagHidingEnabled())
-            if(filterModel.featureSubtractionMatches(item)) return false;
 
         if(filterModel.isCmlMs1FilterActive()){
             if(!matchesCmlMs1Filter(item, filterModel)) return false;
@@ -234,6 +237,10 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         }
     }
 
+    private boolean matchesFoldChangeFilter(InstanceBean item, CompoundFilterModel filterModel) {
+        return filterModel.getBlankSubtraction().matches(item);
+    }
+
     private boolean matchesLipidFilter(InstanceBean item, CompoundFilterModel filterModel) {
         boolean hasAnyLipidHit = item.getFormulaCandidates().stream().anyMatch(FormulaResultBean::isLipid);
         return (filterModel.getLipidFilter() == CompoundFilterModel.LipidFilter.ANY_LIPID_CLASS_DETECTED && hasAnyLipidHit)
@@ -254,7 +261,7 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         if (k == 0)
             return false;
 
-        final PageStructureCandidateFormula candidates = item.getStructureCandidatesPage(k, false);
+        final PagedModelStructureCandidateFormula candidates = item.getStructureCandidatesPage(k, false);
 
         if (candidates == null || candidates.getContent() == null || candidates.getContent().isEmpty())
             return false;
@@ -266,7 +273,6 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
                 .map(StructureCandidateFormula::getDbLinks)
                 .filter(Objects::nonNull).flatMap(List::stream)
                 .map(DBLink::getName).distinct()
-                .filter(Objects::nonNull)
                 .anyMatch(filterDbs::contains);
     }
 
@@ -274,8 +280,8 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         CompoundFilterModel.ElementFilter filter = filterModel.getElementFilter();
         @NotNull FormulaConstraints constraints = filter.constraints;
         return item.getFormulaAnnotationAsBean().map(fc ->
-                (filter.matchFormula && constraints.isSatisfied(fc.getMolecularFormulaObj(), fc.getAdductObj().getIonization()))
-                        || (filter.matchPrecursorFormula && constraints.isSatisfied(fc.getAdductObj().neutralMoleculeToMeasuredNeutralMolecule(fc.getMolecularFormulaObj()), fc.getAdductObj().getIonization()))
+                (filter.matchFormula && constraints.isSatisfied(fc.getMolecularFormulaObj()))  //check if compound satisfies element constraints
+                        || (filter.matchPrecursorFormula && constraints.isSatisfied(fc.getAdductObj().neutralMoleculeToMeasuredNeutralMolecule(fc.getMolecularFormulaObj()))) //check if precursor formula satisfies element constraints
         ).orElse(false);
     }
 }

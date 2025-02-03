@@ -38,10 +38,6 @@ public class LcmsSubmissionParameters {
     @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, defaultValue = "true")
     protected boolean alignLCMSRuns = true;
 
-
-    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, defaultValue = "sample")
-    protected String tag;
-
     /**
      * Features must be larger than <value> * detected noise level.
      */
@@ -63,19 +59,19 @@ public class LcmsSubmissionParameters {
     /**
      * Specifies filter algorithm to suppress noise.
      */
-    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, defaultValue = "AUTO", enumAsRef = true)
+    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, defaultValue = "AUTO", hidden = true)
     protected DataSmoothing filter = DataSmoothing.AUTO;
 
     /**
      * Sigma (kernel width) for gaussian filter algorithm.
      */
-    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, defaultValue = "0.5")
+    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, defaultValue = "0.5", hidden = true)
     protected double gaussianSigma = 0.5;
 
     /**
      * Number of coefficients for wavelet filter algorithm.
      */
-    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, defaultValue = "8")
+    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, defaultValue = "8", hidden = true)
     protected int waveletScale = 8;
 
 

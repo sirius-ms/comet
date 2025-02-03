@@ -43,6 +43,7 @@ import de.unijena.bioinf.ms.annotations.Ms2ExperimentAnnotation;
 import de.unijena.bioinf.ms.persistence.storage.StorageUtils;
 import de.unijena.bioinf.ms.properties.ParameterConfig;
 import de.unijena.bioinf.passatutto.Decoy;
+import de.unijena.bioinf.sirius.IdentificationResult;
 import de.unijena.bioinf.spectraldb.SpectralSearchResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -111,8 +112,8 @@ public class SiriusProjectSpaceInstance implements Instance {
     }
 
     @Override
-    public PrecursorIonType getIonType() {
-        return getCompoundContainerId().getIonType().orElse(PrecursorIonType.unknown(1));
+    public int getCharge() {
+        return getCompoundContainerId().getIonType().orElse(PrecursorIonType.unknown(1)).getCharge();
     }
 
     @Override
@@ -513,7 +514,17 @@ public class SiriusProjectSpaceInstance implements Instance {
     }
     //endregion
 
+
     @Override
+    public void addAndSaveAdductsBySource(Map<DetectedAdducts.Source, Iterable<PrecursorIonType>> addcutsBySource) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public boolean removeAndSaveAdductsBySource(DetectedAdducts.Source... sources) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
     public synchronized void saveDetectedAdductsAnnotation(DetectedAdducts detectedAdducts) {
         getCompoundContainerId().setDetectedAdducts(detectedAdducts);
         updateCompoundID();
@@ -657,8 +668,8 @@ public class SiriusProjectSpaceInstance implements Instance {
 
 
     @Override
-    public synchronized void saveSiriusResult(List<FTree> treesSortedByScore) {
-        treesSortedByScore.forEach(this::newFormulaResultWithUniqueId);
+    public synchronized void saveSiriusResult(List<IdentificationResult> idResultsSortedByScore) {
+        idResultsSortedByScore.stream().map(IdentificationResult::getTree).forEach(this::newFormulaResultWithUniqueId);
     }
 
     @Override
@@ -669,8 +680,10 @@ public class SiriusProjectSpaceInstance implements Instance {
     @Override
     public synchronized void deleteSiriusResult() {
         deleteFormulaResults(); //this step creates the results, so we have to delete them before recompute
-        //todo detected Adducts should be moved to separate subtool
-        getExperiment().getAnnotation(DetectedAdducts.class).ifPresent(it -> it.remove(DetectedAdducts.Source.MS1_PREPROCESSOR.name()));
+        getExperiment().getAnnotation(DetectedAdducts.class).ifPresent(it -> {
+            it.remove(DetectedAdducts.Source.MS1_PREPROCESSOR);
+            it.remove(DetectedAdducts.Source.SPECTRAL_LIBRARY_SEARCH);
+        });
         saveDetectedAdductsAnnotation(getExperiment().getAnnotationOrNull(DetectedAdducts.class));
     }
 

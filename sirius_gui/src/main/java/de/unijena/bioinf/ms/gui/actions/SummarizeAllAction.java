@@ -39,9 +39,9 @@ public class SummarizeAllAction extends AbstractGuiAction {
 
     public SummarizeAllAction(SiriusGui gui) {
         super("Summaries", gui);
-        putValue(Action.LARGE_ICON_KEY, Icons.EXPORT_32);
-        putValue(Action.SMALL_ICON, Icons.EXPORT_16);
-        putValue(Action.SHORT_DESCRIPTION, "Write/Export Summary .tsv files.");
+        putValue(Action.LARGE_ICON_KEY, Icons.EXPORT.derive(32,32));
+        putValue(Action.SMALL_ICON, Icons.EXPORT.derive(16,16));
+        putValue(Action.SHORT_DESCRIPTION, "Write/Export Summary files.");
         initListeners();
     }
 
@@ -53,7 +53,7 @@ public class SummarizeAllAction extends AbstractGuiAction {
             }
 
             @Override
-            public void listSelectionChanged(DefaultEventSelectionModel<InstanceBean> selection, int fullSize) {}
+            public void listSelectionChanged(DefaultEventSelectionModel<InstanceBean> selection, List<InstanceBean> selected, List<InstanceBean> deselected, int fullSize) {}
         });
 
         setEnabled(SiriusActions.notComputingOrEmpty(mainFrame.getCompoundList().getCompoundList()));

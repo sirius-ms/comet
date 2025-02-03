@@ -20,11 +20,12 @@
 
 package de.unijena.bioinf.ms.gui.mainframe;
 
+import de.unijena.bioinf.ms.gui.configs.Colors;
 import de.unijena.bioinf.ms.gui.net.ConnectionMonitor;
 import de.unijena.bioinf.ms.gui.utils.GuiUtils;
-import de.unijena.bioinf.ms.nightsky.sdk.model.ConnectionCheck;
-import de.unijena.bioinf.ms.nightsky.sdk.model.Subscription;
-import de.unijena.bioinf.ms.nightsky.sdk.model.SubscriptionConsumables;
+import io.sirius.ms.sdk.model.ConnectionCheck;
+import io.sirius.ms.sdk.model.Subscription;
+import io.sirius.ms.sdk.model.SubscriptionConsumables;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -75,7 +76,15 @@ public class WebServiceInfoPanel extends JToolBar implements PropertyChangeListe
                         .map(SubscriptionConsumables::getCountedCompounds).orElse(-1);
 
                 final String current = consumed < 0 ? "N/A" : String.valueOf(consumed);
-                consumedQueries.setText("<html>Quota: <b>" + current + "/" + max + "</b> (per " + (hasLimit ? "Year" : "Month") + ")</html>");
+
+                Color fontColor = Colors.FOREGROUND_INTERFACE;
+                if (hasLimit && (consumed  >= sub.getInstanceLimit()))
+                    fontColor = Colors.TEXT_ERROR;
+                else if (hasLimit && (consumed  >= sub.getInstanceLimit()* .8))
+                    fontColor = Colors.TEXT_WARN_ORANGE;
+
+                String limit = "<font color=\""+ Colors.asHex(fontColor) +"\"> " +  current + "/" + max + " </font>";
+                consumedQueries.setText("<html>Quota: <b>" + limit + "</b> (per " + (hasLimit ? "Year" : "Month") + ")</html>");
             } else {
                 consumedQueries.setText("<html>Quota: <b>UNLIMITED</b></html>");
             }

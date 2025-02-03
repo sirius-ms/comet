@@ -23,14 +23,10 @@ package de.unijena.bioinf.ms.gui.table;
 import ca.odell.glazedlists.EventList;
 import ca.odell.glazedlists.event.ListEvent;
 import ca.odell.glazedlists.event.ListEventAssembler;
-import it.unimi.dsi.fastutil.Pair;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class SiriusGlazedLists {
 
@@ -38,8 +34,8 @@ public class SiriusGlazedLists {
         multiUpdate(list, null);
     }
     public static <E> void multiUpdate(EventList<E> list, @Nullable Set<E> elementsToUpdate) {
+        list.getReadWriteLock().writeLock().lock();
         try {
-            list.getReadWriteLock().writeLock().lock();
             final ListEventAssembler<E> eventAssembler = new ListEventAssembler<>(list, list.getPublisher());
             eventAssembler.beginEvent();
             for (int i = 0; i < list.size(); i++) {
@@ -47,46 +43,6 @@ public class SiriusGlazedLists {
                     eventAssembler.elementUpdated(i, ListEvent.unknownValue(), list.get(i));
             }
             eventAssembler.commitEvent();
-        } finally {
-            list.getReadWriteLock().writeLock().unlock();
-        }
-
-    }
-
-    public static <E> boolean multiAddRemove(EventList<E> list, ArrayList<E> innerList, List<Pair<E, Boolean>> elementsAddOrRemove) {
-        try {
-            list.getReadWriteLock().writeLock().lock();
-
-            if (elementsAddOrRemove == null || elementsAddOrRemove.isEmpty()) {
-                return true;
-            } else {
-                try {
-                    final ListEventAssembler<E> eventAssembler = new ListEventAssembler<>(list, list.getPublisher());
-                    eventAssembler.beginEvent();
-                    int index = list.size();
-                    for (Pair<E, Boolean> element : elementsAddOrRemove) {
-                        if (element.value()) {
-                            eventAssembler.elementInserted(index, element.key());
-                            // do the actual add
-                            innerList.add(index, element.key());
-                            index++;
-                        } else {
-                            int i = innerList.indexOf(element.key());
-                            if(index >= 0){
-                                eventAssembler.elementDeleted(i, innerList.get(i));
-                                innerList.remove(i);
-                                index--;
-                            }
-                        }
-                    }
-
-                    eventAssembler.commitEvent();
-                    return true;
-                } catch (Exception e) {
-                    LoggerFactory.getLogger(SiriusGlazedLists.class).error("Error during Event list Refill.", e);
-                    return false;
-                }
-            }
         } finally {
             list.getReadWriteLock().writeLock().unlock();
         }
@@ -133,5 +89,4 @@ public class SiriusGlazedLists {
             list.getReadWriteLock().writeLock().unlock();
         }
     }
-
 }

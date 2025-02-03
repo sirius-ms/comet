@@ -26,14 +26,15 @@ import de.unijena.bioinf.ms.gui.fingerid.FingerprintCandidateBean;
 import de.unijena.bioinf.ms.gui.fingerid.StructureList;
 import de.unijena.bioinf.ms.gui.mainframe.result_panel.PanelDescription;
 import de.unijena.bioinf.ms.gui.utils.ToolbarToggleButton;
-import de.unijena.bioinf.ms.nightsky.sdk.model.StructureCandidateFormula;
+import de.unijena.bioinf.ms.gui.utils.loading.Loadable;
+import de.unijena.bioinf.ms.gui.utils.loading.LoadablePanel;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.Optional;
 
 
-public class EpimetheusPanel extends JPanel implements PanelDescription {
+public class EpimetheusPanel extends JPanel implements Loadable, PanelDescription {
     @Override
     public String getDescription() {
         return "<html>"
@@ -47,6 +48,8 @@ public class EpimetheusPanel extends JPanel implements PanelDescription {
 
     protected final StructureList structureList;
     protected final EpimetheusPanelCandidateListTableView candidateTable;
+    private final LoadablePanel loadablePanel;
+
     public EpimetheusPanel(final StructureList structureList) {
         super(new BorderLayout());
         this.structureList = structureList;
@@ -64,11 +67,14 @@ public class EpimetheusPanel extends JPanel implements PanelDescription {
 
         JSplitPane major = new JSplitPane(JSplitPane.VERTICAL_SPLIT, candidateTable, overviewSVP);
         major.setDividerLocation(250);
-        add(major, BorderLayout.CENTER);
+        loadablePanel = new LoadablePanel(major);
+        add(loadablePanel, BorderLayout.CENTER);
+        structureList.addActiveResultChangedListener((elementsParent, selectedElement, resultElements, selections) -> disableLoading());
     }
 
-    public StructureList getStructureList() {
-        return structureList;
+    @Override
+    public boolean setLoading(boolean loading, boolean absolute) {
+        return loadablePanel.setLoading(loading, absolute);
     }
 
     public CandidateListTableView getCandidateTable() {
@@ -84,7 +90,7 @@ public class EpimetheusPanel extends JPanel implements PanelDescription {
         @Override
         protected JToolBar getToolBar() {
             JToolBar tb = super.getToolBar();
-            ToolbarToggleButton showMSNovelist = new ToolbarToggleButton(null, Icons.DENOVO_24, "Show MSNovelist de novo structure candidates together with CSI:FingerID structure database hits.");
+            ToolbarToggleButton showMSNovelist = new ToolbarToggleButton(null, Icons.DENOVO.derive(24,24), "Show MSNovelist de novo structure candidates together with CSI:FingerID structure database hits.");
             showMSNovelist.setSelected(true);
             tb.add(showMSNovelist, getIndexOfSecondGap(tb) + 1);
 

@@ -27,6 +27,7 @@ import ca.odell.glazedlists.swing.DefaultEventSelectionModel;
 import de.unijena.bioinf.ms.frontend.core.SiriusPCS;
 import de.unijena.bioinf.ms.gui.utils.GuiUtils;
 import de.unijena.bioinf.ms.gui.utils.PlaceholderTextField;
+import de.unijena.bioinf.ms.gui.utils.loading.SpinnerProgressPanel;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -71,6 +72,7 @@ public abstract class ActionListDetailView<E extends SiriusPCS, D, T extends Act
 
         addToCenterCard(ActionList.ViewState.NOT_COMPUTED, GuiUtils.newNoResultsComputedPanel());
         addToCenterCard(ActionList.ViewState.EMPTY, GuiUtils.newEmptyResultsPanel());
+        addToCenterCard(ActionList.ViewState.LOADING, new SpinnerProgressPanel());
         add(centerCardPanel, BorderLayout.CENTER);
         showCenterCard(ActionList.ViewState.NOT_COMPUTED);
     }
@@ -84,11 +86,11 @@ public abstract class ActionListDetailView<E extends SiriusPCS, D, T extends Act
         showCenterCard(name);
     }
 
-    protected void showCenterCard(@NotNull ActionList.ViewState name) {
+    public void showCenterCard(@NotNull ActionList.ViewState name) {
         showCenterCard(name.name());
     }
 
-    protected void showCenterCard(@NotNull String name) {
+    public void showCenterCard(@NotNull String name) {
         centerCard.show(centerCardPanel, name);
     }
 

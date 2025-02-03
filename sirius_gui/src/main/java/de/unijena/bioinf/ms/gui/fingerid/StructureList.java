@@ -84,9 +84,9 @@ public class StructureList extends ActionList<FingerprintCandidateBean, Instance
             }
 
             @Override
-            public void listSelectionChanged(DefaultEventSelectionModel<InstanceBean> selection, int fullSize) {
-                if (!selection.isSelectionEmpty())
-                    changeData(selection.getSelected().get(0));
+            public void listSelectionChanged(DefaultEventSelectionModel<InstanceBean> selection, List<InstanceBean> selected, List<InstanceBean> deselected, int fullSize) {
+                if (!selected.isEmpty())
+                    changeData(selected.getFirst());
                 else
                     changeData(null);
             }
@@ -169,33 +169,6 @@ public class StructureList extends ActionList<FingerprintCandidateBean, Instance
         }
     }
 
-//    private List<FingerprintCandidateBean> filterList(List<FingerprintCandidateBean> fpcList, boolean loadDatabaseHits, boolean loadDenovo) {
-//        List<FingerprintCandidateBean> filtered = new LinkedList<>();
-//        for (FingerprintCandidateBean fpc : fpcList) {
-//            final boolean isDenovo = fpc.isDeNovo();
-//            final boolean isDatabase = fpc.isDatabase();
-//            if ((isDenovo && loadDenovo) || (isDatabase && loadDatabaseHits)){
-//                filtered.add(fpc);
-//            }
-//        }
-//        return filtered;
-//    }
-//
-//    private void recalculatedRanks(List<FingerprintCandidateBean> fpcChache) {
-//        fpcChache.sort(Comparator.comparingDouble((a) -> -a.getCandidate().getCsiScore()));
-//        int rank = 0;
-//        String lastKey = null;
-//        for (int i = 0; i < fpcChache.size(); i++) {
-//            FingerprintCandidateBean fc = fpcChache.get(i);
-//            if (i>0 && fc.getCandidate().getInchiKey().equals(lastKey)) {
-//                fc.getCandidate().setRank(rank);
-//            } else {
-//                fc.getCandidate().setRank(++rank);
-//                lastKey = fc.getCandidate().getInchiKey();
-//            }
-//        }
-//    }
-
     public void reloadData(boolean loadAll, boolean loadDatabaseHits, boolean loadDenovo) {
         if (loadAll != this.loadAll.get() || loadDatabaseHits != loadDatabaseHitsAtom.get() || loadDenovo != loadDenovoAtom.get() )
             readDataByConsumer(d -> changeData(d, loadAll, loadDatabaseHits, loadDenovo));
@@ -203,12 +176,8 @@ public class StructureList extends ActionList<FingerprintCandidateBean, Instance
 
     protected Function<FingerprintCandidateBean, Boolean> getBestFunc() {
         return c -> {
-            if (c.getScore() >= csiScoreStats.getMax()) //ensures that tophit is always best no matter what with mces
-                return true;
-            if (compoundList.getGui().getProperties().isConfidenceViewMode(ConfidenceDisplayMode.APPROXIMATE)) {
-                return c.getCandidate().getMcesDistToTopHit() != null && c.getCandidate().getMcesDistToTopHit() <= 2;
-            }
-            return false;
+            final int threshold = compoundList.getGui().getProperties().isConfidenceViewMode(ConfidenceDisplayMode.APPROXIMATE) ? 2 : 0;
+            return c.getCandidate().getMcesDistToTopHit() != null && c.getCandidate().getMcesDistToTopHit() <= threshold;
         };
     }
 

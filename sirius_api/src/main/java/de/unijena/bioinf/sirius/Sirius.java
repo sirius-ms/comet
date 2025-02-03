@@ -643,6 +643,9 @@ public class Sirius {
                 FasterTreeComputationInstance.FinalResult fr = instance.awaitResult();
 
                 List<IdentificationResult> r = createIdentificationResultsAndResolveAdducts(fr, instance);//postprocess results
+                // adds normalized scores to identification results
+                FTreeMetricsHelper.computeNormalizedSiriusScores(r, fr.maxTreeWeight, fr.remainingCandidatesTreeWeightExpSumEstimate);
+
                 return r;
             } catch (RuntimeException e) {
                 LoggerFactory.getLogger(Sirius.class).error("Error in instance " + experiment.getSourceString() + ": " + e.getMessage());
@@ -666,7 +669,7 @@ public class Sirius {
         private List<IdentificationResult> createIdentificationResultsAndResolveAdducts(FasterTreeComputationInstance.FinalResult fr, FasterTreeComputationInstance computationInstance) {
             //clear scores for none MS/MS results
             if (experiment.getMs2Spectra().isEmpty()){
-                logWarn("Instance has no MS/MS data. Tree score will be unreliable. Setting TreeScore to 0");
+                logDebug("Instance has no MS/MS data. Tree score will be unreliable. Setting TreeScore to 0");
                 for (FTree ftree : fr.getResults())
                     ftree.setTreeWeight(new FTreeMetricsHelper(ftree).getIsotopeMs1Score());
             }
@@ -725,8 +728,9 @@ public class Sirius {
          * assumes that whiteset contains EVERY allowed parent molecular formula - eiter in measured or neutral form. Even de novo and bottup-up formulas must be included!
          */
         private static boolean isValidNeutralFormula(MolecularFormula measuredMF, PrecursorIonType ionType, Whiteset whiteset, FormulaConstraints constraints,  boolean checkElementFilter) {
+            if (!measuredMF.subtract(ionType.getAdduct()).isAllPositiveOrZero()) return false;
             if (!whiteset.containsMeasuredFormula(measuredMF, ionType)) return false;
-            if (checkElementFilter) return constraints.isSatisfied(ionType.measuredNeutralMoleculeToNeutralMolecule(measuredMF), ionType.getIonization());
+            if (checkElementFilter) return constraints.isSatisfied(measuredMF, ionType);
             for (FormulaFilter filter : constraints.getFilters()) {
                 if (!filter.isValid(measuredMF, ionType)){
                     return false;

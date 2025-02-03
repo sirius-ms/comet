@@ -26,14 +26,30 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class Utils {
+    public static final Comparator<String> ALPHANUMERIC_COMPARATOR_NULL_LAST = Comparator.nullsLast(new AlphanumComparator());
+    public static final Comparator<Double> DOUBLE_DESC_NULL_LAST = Comparator.nullsLast(Comparator.reverseOrder());
+    public static final Comparator<Double> DOUBLE_ASC_NULL_LAST = Comparator.nullsLast(Comparator.naturalOrder());
 
-    public static final Comparator<String> ALPHANUMERIC_COMPARATOR = new AlphanumComparator();
+    public static ZonedDateTime epochLongToZonedDateTime(long epochMillis) {
+        return epochLongToZonedDateTime(epochMillis, ZoneId.systemDefault());
+    }
+    public static ZonedDateTime epochLongToZonedDateTime(long epochMillis, ZoneId zone) {
+        // Convert milliseconds to Instant
+        Instant instant = Instant.ofEpochMilli(epochMillis);
+        // Convert Instant to ZonedDateTime
+        return instant.atZone(zone);
+    }
 
     public static int[] shortsToInts(short[] shorts){
         int[] ints = new int[shorts.length];
@@ -113,4 +129,63 @@ public class Utils {
 
         return pairs;
     }
+
+    public static boolean isNullOrEmpty(@Nullable final Collection<?> c) {
+        return c == null || c.isEmpty();
+    }
+
+    public static boolean isNullOrEmpty(@Nullable final Map<?, ?> m) {
+        return m == null || m.isEmpty();
+    }
+
+    public static boolean isNullOrEmpty(@Nullable final CharSequence s) {
+        return s == null || s.isEmpty();
+    }
+
+    public static boolean isNullOrEmpty(@Nullable final String s) {
+        return s == null || s.isEmpty();
+    }
+
+    public static boolean isNullOrBlank(@Nullable final String s) {
+        return s == null || s.isBlank();
+    }
+
+    public static <T> boolean isNullOrEmpty(@Nullable final T[] s) {
+        return s == null || s.length == 0;
+    }
+
+    public static boolean notNullOrEmpty(@Nullable final Collection<?> c) {
+        return !isNullOrEmpty(c);
+    }
+
+    public static boolean notNullOrEmpty(@Nullable final Map<?, ?> m) {
+        return !isNullOrEmpty(m);
+    }
+
+    public static boolean notNullOrEmpty(@Nullable final CharSequence s) {
+        return !isNullOrEmpty(s);
+    }
+
+    public static boolean notNullOrEmpty(@Nullable final String s) {
+        return !isNullOrEmpty(s);
+    }
+
+    @NotNull
+    public static String notNullOrEmpty(@Nullable final String s, @NotNull String fallback) {
+        return notNullOrEmpty(s) ? s : fallback;
+    }
+
+    public static boolean notNullOrBlank(@Nullable final String s) {
+        return !isNullOrBlank(s);
+    }
+
+    @NotNull
+    public static String notNullOrBlank(@Nullable final String s, @NotNull String fallback) {
+        return notNullOrBlank(s) ? s : fallback;
+    }
+
+    public static <T> boolean notNullOrEmpty(@Nullable final T[] s) {
+        return !isNullOrEmpty(s);
+    }
+
 }

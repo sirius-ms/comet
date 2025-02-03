@@ -11,6 +11,7 @@ import de.unijena.bioinf.lcms.ScanPointMapping;
 import de.unijena.bioinf.lcms.statistics.TraceStats;
 import de.unijena.bioinf.lcms.trace.ProcessedSample;
 import de.unijena.bioinf.lcms.traceextractor.MassOfInterestConfidenceEstimatorStrategy;
+import de.unijena.bioinf.lcms.utils.Tracker;
 import de.unijena.bioinf.recal.MzRecalibration;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
@@ -21,6 +22,7 @@ import it.unimi.dsi.fastutil.shorts.ShortArrayList;
 import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -222,7 +224,7 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
         return mean;
     }
 
-    protected void cleanupOldMoIs(ProcessedSample sample, List<ProcessedSample> samples, int currentIdx, int deleteLast) {
+    protected void cleanupOldMoIs(ProcessedSample sample, List<ProcessedSample> samples, int currentIdx, int deleteLast, Tracker tracker) {
         final IntOpenHashSet map = new IntOpenHashSet();
         for (int k=0; k < currentIdx-deleteLast; ++k) {
             map.add(samples.get(k).getUid());
@@ -231,7 +233,9 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
             if (moi instanceof AlignedMoI) {
                 if (((AlignedMoI) moi).getAligned().length>1) return false;
                 MoI key = ((AlignedMoI) moi).getAligned()[0];
-                return map.contains(key.getSampleIdx()) && key.getConfidence()<MassOfInterestConfidenceEstimatorStrategy.KEEP_FOR_ALIGNMENT;
+                final boolean delete = map.contains(key.getSampleIdx()) && key.getConfidence()<MassOfInterestConfidenceEstimatorStrategy.KEEP_FOR_ALIGNMENT;
+                if (delete) tracker.moiDeleted(moi);
+                return delete;
             } else return true;
         });
     }
@@ -330,7 +334,7 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
     }
 
     @Override
-    public AlignmentBackbone align(ProcessedSample merge, AlignmentBackbone backbone, List<ProcessedSample> samples, AlignmentAlgorithm algorithm, AlignmentScorer scorer) {
+    public AlignmentBackbone align(ProcessedSample merge, AlignmentBackbone backbone, List<ProcessedSample> samples, AlignmentAlgorithm algorithm, AlignmentScorer scorer, Tracker tracker) {
         AlignmentStorage storage = merge.getStorage().getAlignmentStorage();
         List<BasicJJob<Object>> todo = new ArrayList<>();
         // sort samples by number of confident annotations
@@ -362,13 +366,22 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
                                 toArray(MoI[]::new);
                         if (leftSet.length>0 && rightSet.length > 0) {
                             algorithm.align(stats, scorer, backbone, leftSet, rightSet,
-                                    (al, left, right, leftIndex, rightIndex) -> storage.mergeMoIs(al, left[leftIndex], right[rightIndex]),
-                                    (al, right, rightIndex) -> storage.addMoI(
-                                            AlignedMoI.merge(al, right[rightIndex])
-                                    )
+                                    (al, left, right, leftIndex, rightIndex) -> {
+                                        storage.mergeMoIs(al, left[leftIndex], right[rightIndex]);
+                                        tracker.alignMois(S, left[leftIndex], right[rightIndex]);
+                                    },
+                                    (al, right, rightIndex) -> {
+                                        storage.addMoI(
+                                                AlignedMoI.merge(al, right[rightIndex])
+                                        );
+                                        tracker.unalignedMoI(S, right[rightIndex]);
+                                    }
                             );
                         } else {
-                            for (MoI m : rightSet) storage.addMoI(AlignedMoI.merge(backbone, m));
+                            for (MoI m : rightSet) {
+                                storage.addMoI(AlignedMoI.merge(backbone, m));
+                                tracker.unalignedMoI(S, m);
+                            }
                         }
                         return true;
                     };
@@ -376,7 +389,7 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
             }
             todo.forEach(JJob::takeResult);
             todo.clear();
-            if (k > 10 && (k % 5 == 0)) cleanupOldMoIs(merge, samples, k, 5);
+            if (k > 10 && (k % 5 == 0)) cleanupOldMoIs(merge, samples, k, 5, tracker);
             S.inactive();
         }
         final long[] backboneMois;
@@ -435,7 +448,7 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
         }
         stats.setExpectedRetentionTimeDeviation((3*Statistics.robustAverage(rtErrors.toDoubleArray())+stats.getExpectedRetentionTimeDeviation())/4d);
         stats.setExpectedMassDeviationBetweenSamples(new Deviation(Statistics.robustAverage(ppmErrors.toDoubleArray()),Statistics.robustAverage(mzErrors.toDoubleArray())));
-        cleanupOldMoIs(merge, samples, samples.size(), samples.size());
+        cleanupOldMoIs(merge, samples, samples.size(), 0, tracker);
 
         System.out.println("Stage 2: average alignment error is " + stats.getExpectedRetentionTimeDeviation());
         return AlignmentBackbone.builder().statistics(stats).samples(samples.toArray(ProcessedSample[]::new)).build();
@@ -489,7 +502,7 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
         DoubleArrayList xs=new DoubleArrayList(), ys=new DoubleArrayList(), xs2 = new DoubleArrayList(), ys2 = new DoubleArrayList();
         populate(storage, xs, ys, null, null, alignments, sample.getUid());
 
-        if (minimumBuckSize > 1 && minimumBuckSize < 25) {
+        if (minimumBuckSize > 1/* && minimumBuckSize < 25*/) {
             // linear recalibration
             PolynomialFunction medianLinearRecalibration;
             if (xs.size() < 500) {
@@ -510,9 +523,10 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
 
             sample.setRtRecalibration(RecalibrationFunction.linear(medianLinearRecalibration));
             sample.setMzRecalibration(RecalibrationFunction.identity());
-        } else if (minimumBuckSize>=25) {
+        }/* else if (minimumBuckSize>=25) {
+            System.out.println("Second Case");
             double[] x,y;
-            strictMonotonic(xs,ys);
+            strictMonotonic(xs,ys, 0);
             x=xs.toDoubleArray();
             y=ys.toDoubleArray();
             {
@@ -552,7 +566,7 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
                     rtError = loessError;
                 }
             }
-        }
+        }*/
         return rtError;
     }
     private double[] recalibrateByAlignmentWithMzRecal(ProcessedSample sample, AlignmentStorage storage, long[] alignments, HashMap<Integer, int[]> bucketCounts) {
@@ -590,10 +604,10 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
         } else if (minimumBuckSize>=25) {
             double linearRtError, NoCalRtError, LoessRtError;
             double[] x,y,x2,y2;
-            strictMonotonic(xs,ys);
+            strictMonotonic(xs,ys,0);
             x=xs.toDoubleArray();
             y=ys.toDoubleArray();
-            strictMonotonic(xs2, ys2);
+            strictMonotonic(xs2, ys2,0.2);
             x2=xs2.toDoubleArray();
             y2=ys2.toDoubleArray();
             {
@@ -606,24 +620,26 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
                     linearRecalibrationMz = MzRecalibration.getLinearRecalibration(x2, y2);
                 }
                 double bandwidth = Math.min(0.3, Math.max(0.1, (200d / x.length)));
-                PolynomialSplineFunction loess = new LoessInterpolator(bandwidth, 2).interpolate(x, y);
-                PolynomialSplineFunction loessMz = new LoessInterpolator(bandwidth, 2).interpolate(x2, y2);
+
+                // WE DO NOT USE LOESS ANYMORE AS THE IMPLEMENTATION SEEMS BUGGY
+                //PolynomialSplineFunction loess = new LoessInterpolator(bandwidth, 2).interpolate(x, y);
+                //PolynomialSplineFunction loessMz = new LoessInterpolator(bandwidth, 2).interpolate(x2, y2);
                 // get rt error
-                double linError=0d,loessError=0d, linMzError=0d, loessMzError=0d;
+                double linError=0d,loessError=Double.POSITIVE_INFINITY, linMzError=0d, loessMzError=Double.POSITIVE_INFINITY;
                 for (int k=0; k < xs.size(); ++k) {
                     linError += Math.abs(linearRecalibration.value(xs.getDouble(k))-ys.getDouble(k));
-                    loessError += Math.abs(loess.value(xs.getDouble(k))-ys.getDouble(k));
+                    //loessError += Math.abs(loess.value(xs.getDouble(k))-ys.getDouble(k));
                 }
                 for (int k=0; k < xs2.size(); ++k) {
                     linMzError += Math.abs(linearRecalibrationMz.value(xs2.getDouble(k))-ys2.getDouble(k));
-                    loessMzError += Math.abs(loessMz.value(xs2.getDouble(k))-ys2.getDouble(k));
+                    //loessMzError += Math.abs(loessMz.value(xs2.getDouble(k))-ys2.getDouble(k));
                 }
                 if (linError<loessError) {
                     sample.setRtRecalibration(RecalibrationFunction.linear(linearRecalibration));
                     rtError = (linError/xs.size());
                 } else {
-                    sample.setRtRecalibration(RecalibrationFunction.loess(loess, linearRecalibration));
-                    rtError = loessError/xs.size();
+                    //sample.setRtRecalibration(RecalibrationFunction.loess(loess, linearRecalibration));
+                    //rtError = loessError/xs.size();
                 }
                 if (linMzError<loessMzError) {
                     sample.setMzRecalibration(RecalibrationFunction.linear(linearRecalibrationMz));
@@ -641,6 +657,7 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
                     mzPPMError /= large;
                     mzAbsError /= small;
                 } else {
+                    /*
                     sample.setMzRecalibration(RecalibrationFunction.loess(loessMz, linearRecalibrationMz));
                     int large=0, small=0;
                     for (int k=0; k < xs2.size(); ++k) {
@@ -655,6 +672,8 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
                     mzPPMError /= large;
                     mzAbsError /= small;
                     mzError = loessMzError/xs.size();
+
+                     */
                 }
             }
         }
@@ -676,21 +695,28 @@ public class GreedyTwoStageAlignmentStrategy implements AlignmentStrategy{
         }
     }
 
-    private void strictMonotonic(DoubleArrayList xs, DoubleArrayList ys) {
+    private void strictMonotonic(DoubleArrayList xs, DoubleArrayList ys, double outlierCheck) {
         int[] idx = Sorting.argsort(xs.toDoubleArray());
         DoubleArrayList l = new DoubleArrayList(), r = new DoubleArrayList();
         for (int i = 0; i < idx.length; ++i) {
-            l.add(xs.getDouble(idx[i]));
+            double dp = xs.getDouble(idx[i]);
             double y = ys.getDouble(idx[i]);
             int c=1;
             while (i+1 < idx.length) {
-                if (xs.getDouble(idx[i+1])==xs.getDouble(idx[i])) {
+                if (xs.getDouble(idx[i+1])== dp) {
                     ++i;
                     ++c;
                     y += ys.getDouble(idx[i]);
                 } else break;
             }
             y /= c;
+            if (outlierCheck>0) {
+                if (Math.abs(dp-y)>outlierCheck) {
+                    LoggerFactory.getLogger(GreedyTwoStageAlignmentStrategy.class).warn("Outlier detected in recalibration: " + dp + " and " + y);
+                    continue;
+                }
+            }
+            l.add(dp);
             r.add(y);
         }
         xs.clear();ys.clear();
