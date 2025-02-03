@@ -55,16 +55,13 @@ public class LcmsAlignOptions implements PreprocessingTool<PreprocessingJob<? ex
     @CommandLine.Option(names={"--no-align"}, description = "Do not align and combine all LC/MS runs to one merged LC/MS run.")
     public boolean noAlign;
 
-    @CommandLine.Option(names={"--tag"}, defaultValue = "sample", description = "Data type tag (e.g. \"blank\", \"control\", or \"sample\").")
-    public String tag;
-
     @CommandLine.Option(names={"--smoothing"}, defaultValue = "AUTO", description = "Filter algorithm to suppress noise.", hidden = true)
     public DataSmoothing smoothing;
 
-    @CommandLine.Option(names={"--sigma"}, defaultValue = "0.5", description = "Sigma (kernel width) for Gaussian filter algorithm.\nHigher sigma is more robust against noise, but might result in missing neighboring features.", hidden = true)
+    @CommandLine.Option(names={"--sigma"}, defaultValue = "0.5", description = "Sigma (kernel width) for Gaussian filter algorithm.", hidden = true)
     public double sigma;
 
-    @CommandLine.Option(names={"--scale"}, defaultValue = "8", description = "Number of coefficients for wavelet filter algorithm.\nMore coefficients are more robust against noise, but might result in missing neighboring features.", hidden = true)
+    @CommandLine.Option(names={"--scale"}, defaultValue = "8", description = "Number of coefficients for wavelet filter algorithm.", hidden = true)
     public int scaleLevel;
 
     @CommandLine.Option(names={"--noise"}, defaultValue = "2.0", description = "Features must be larger than <value> * detected noise level.", hidden = true)
