@@ -35,6 +35,9 @@ public class SimplePeakExplainingScorer implements CMLScorer<DoubleScore>{
         List<BBFragment> bbFragments = molecule.createAllBBFragments();
 
         // 3. Additional objects/variables:
+        // todo: the ionization should also match the possible ionization of the candidate molecule (for the former evaluation this wasn't a problem, but in general it can be a problem)
+        // todo: if the ionization is unknown, the candidate molecule can maybe explain the measured precursor-peak with e.g. [M+Na]+, or [M+K]+ and so on...(it doesn't have to be [M+H]+)
+        // todo: therefore, this method should get as additional parameter the precursor ion type
         PrecursorIonType ionType = exp.getPrecursorIonType().isIonizationUnknown() ? PrecursorIonType.fromString("[M+H]+") : exp.getPrecursorIonType();
         double hydrogenMass = MolecularFormula.getHydrogen().getMass();
 
