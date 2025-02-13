@@ -22,20 +22,14 @@ import ca.odell.glazedlists.matchers.Matcher;
 import de.unijena.bioinf.ChemistryBase.chem.MolecularFormula;
 import de.unijena.bioinf.ChemistryBase.ms.*;
 import de.unijena.bioinf.ChemistryBase.ms.Deviation;
-import de.unijena.bioinf.datastructures.BBFragment;
-import de.unijena.bioinf.datastructures.CMLMolecule;
+import de.unijena.bioinf.datastructures.*;
 import de.unijena.bioinf.sirius.Sirius;
 import de.unijena.bioinf.ChemistryBase.chem.FormulaConstraints;
 import de.unijena.bioinf.ChemistryBase.chem.PrecursorIonType;
 import de.unijena.bioinf.ChemistryBase.chem.RetentionTime;
-import de.unijena.bioinf.ChemistryBase.ms.utils.Spectrums;
-import de.unijena.bioinf.ChemistryBase.ms.utils.WrapperSpectrum;
-import de.unijena.bioinf.datastructures.CMLCandidates;
-import de.unijena.bioinf.datastructures.OrderedCombinatorialMoleculeLibrary;
 import de.unijena.bioinf.ms.gui.properties.GuiProperties;
 import de.unijena.bioinf.ms.gui.utils.asms.CMLFilterModelOptions;
-import de.unijena.bioinf.ms.nightsky.sdk.model.*;
-import de.unijena.bioinf.ms.properties.PropertyManager;
+import io.sirius.ms.sdk.model.*;
 import de.unijena.bioinf.projectspace.FormulaResultBean;
 import de.unijena.bioinf.projectspace.InstanceBean;
 import de.unijena.bioinf.sirius.ProcessedPeak;
@@ -86,14 +80,17 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
             return false;
         }
 
-        if (filterModel.isHasMs1() && !item.getSourceFeature().isHasMs1())
+        if (filterModel.isHasMs1() && Boolean.FALSE.equals(item.getSourceFeature().isHasMs1()))
             return false;
 
-        if (filterModel.isHasMsMs() && !item.getSourceFeature().isHasMsMs())
+        if (filterModel.isHasMsMs() && Boolean.FALSE.equals(item.getSourceFeature().isHasMsMs()))
             return false;
 
-        if (filterModel.isAdductFilterActive() && !filterModel.getAdducts().contains(item.getIonType()))
-            return false;
+        if (filterModel.isAdductFilterActive()) {
+            Set<PrecursorIonType> itemAdducts = item.getDetectedAdductsOrUnknown();
+            if (filterModel.getSelectedAdducts().stream().noneMatch(itemAdducts::contains))
+                return false;
+        }
 
         if (item.getSourceFeature().getQuality() != null) //always allow to pass the filter if now quality data is available
             if (filterModel.getFeatureQualityFilter().isEnabled() && !filterModel.getFeatureQualityFilter().isQualitySelected(item.getSourceFeature().getQuality()))
@@ -103,8 +100,11 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
     }
 
     private boolean anyIOIntenseFilterMatches(InstanceBean item, CompoundFilterModel filterModel) {
+        if (filterModel.getBlankSubtraction().isEnabled())
+            if (!matchesFoldChangeFilter(item, filterModel)) return false;
+
         if (filterModel.getIoQualityFilters().stream().anyMatch(CompoundFilterModel.QualityFilter::isEnabled)) {
-            AlignedFeatureQuality qualityReport = item.getQualityReport();
+            AlignedFeatureQualityExperimental qualityReport = item.getQualityReport();
             if (qualityReport != null) { //always allow to pass the filter if now quality data is available
                 Map<String, Category> categories = qualityReport.getCategories();
                 for (CompoundFilterModel.QualityFilter filter : filterModel.getIoQualityFilters()) {
@@ -127,9 +127,6 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         if (filterModel.isDbFilterEnabled())
             if (!matchesDBFilter(item, filterModel)) return false;
 
-        if (filterModel.isTagHidingEnabled())
-            if(filterModel.featureSubtractionMatches(item)) return false;
-
         if(filterModel.isCmlMs1FilterActive()){
             if(!matchesCmlMs1Filter(item, filterModel)) return false;
 
@@ -146,7 +143,8 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         if(candidates == null) {
             final OrderedCombinatorialMoleculeLibrary cmlLibrary = filterModel.getCompoundList().getCmlLibrary();
             final CMLFilterModelOptions cmlFilterOptions = filterModel.getCmlFilterOptions();
-            candidates = new CMLCandidates(cmlLibrary, exp, cmlFilterOptions.getMs1Deviation());
+            final Deviation ms1Deviation = new Deviation(cmlFilterOptions.getMs1Deviation());
+            candidates = new CMLCandidates(cmlLibrary, exp, ms1Deviation, cmlFilterOptions.getFallbackAdducts());
             exp.setAnnotation(CMLCandidates.class, candidates);
         }
 
@@ -154,29 +152,32 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
     }
 
     private boolean matchesCmlMs2Filter(InstanceBean item, CompoundFilterModel filterModel) {
+        final CMLFilterModelOptions cmlFilterOptions = filterModel.getCmlFilterOptions();
+
         final Ms2Experiment exp = item.asMs2Experiment();
-        final PrecursorIonType ionType = item.getIonType().isIonizationUnknown() ? PrecursorIonType.fromString("[M+H]+") : item.getIonType();
         final List<ProcessedPeak> mergedPeaks = new Sirius().preprocessForMs2Analysis(exp).getMergedPeaks();
-        mergedPeaks.remove(mergedPeaks.size()-1); // remove the precursor peak
+        mergedPeaks.removeLast(); // remove the precursor peak
         mergedPeaks.sort(new ProcessedPeak.RelativeIntensityComparator()); // sort according to the relative intensity
 
-        final CMLFilterModelOptions cmlFilterOptions = filterModel.getCmlFilterOptions();
         final List<String> fragmentTypes = cmlFilterOptions.getFragmentTypes();
+        final Deviation ms1Deviation = new Deviation(cmlFilterOptions.getMs1Deviation());
         final Deviation ms2Deviation = new Deviation(cmlFilterOptions.getMs2Deviation());
         final int minMatchingPeaks = cmlFilterOptions.getMinMatchingPeaks();
         final int numTopPeaks = cmlFilterOptions.getNumTopPeaks();
         final int numHydrogenShifts = cmlFilterOptions.getNumAllowedHydrogenShifts();
         final double HYDROGEN_MASS = MolecularFormula.getHydrogen().getMass();
 
-        final ArrayList<CMLMolecule> candidates = exp.getAnnotation(CMLCandidates.class).orElse(new CMLCandidates(filterModel.getCompoundList().getCmlLibrary(), exp, cmlFilterOptions.getMs1Deviation())).getCandidates();
+        final CMLCandidates candidates = exp.getAnnotation(CMLCandidates.class).orElse(new CMLCandidates(filterModel.getCompoundList().getCmlLibrary(), exp, ms1Deviation, cmlFilterOptions.getFallbackAdducts()));
         final ArrayList<String> selectedOutputMatchedPeaks = new ArrayList<>();
         final int startPeakIdx = mergedPeaks.size() > numTopPeaks ? mergedPeaks.size() - numTopPeaks : 0;
         boolean foundMatchingCompound = false; // true -> there exists at least one candidate whose fragments match at least 'minMatchingPeaks'
         // (at least one candidate structure can explain 'minMatchingPeaks' in the spectrum)
 
-        for(final CMLMolecule candidate : candidates){
+        for(final CMLCandidate candidate : candidates){
             final ArrayList<String> matchedPeaksStrings = new ArrayList<>();
-            final List<BBFragment> fragments = fragmentTypes == null ? candidate.createAllBBFragments() : candidate.createSpecificBBFragments(fragmentTypes);
+            final List<BBFragment> fragments = fragmentTypes == null ? candidate.candidate().createAllBBFragments() : candidate.candidate().createSpecificBBFragments(fragmentTypes);
+            final PrecursorIonType ionType = candidate.adduct();
+
             int matchedPeaks = 0;
 
             for(int peakIdx = startPeakIdx; peakIdx < mergedPeaks.size(); peakIdx++){
@@ -234,6 +235,10 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         }
     }
 
+    private boolean matchesFoldChangeFilter(InstanceBean item, CompoundFilterModel filterModel) {
+        return filterModel.getBlankSubtraction().matches(item);
+    }
+
     private boolean matchesLipidFilter(InstanceBean item, CompoundFilterModel filterModel) {
         boolean hasAnyLipidHit = item.getFormulaCandidates().stream().anyMatch(FormulaResultBean::isLipid);
         return (filterModel.getLipidFilter() == CompoundFilterModel.LipidFilter.ANY_LIPID_CLASS_DETECTED && hasAnyLipidHit)
@@ -254,7 +259,7 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         if (k == 0)
             return false;
 
-        final PageStructureCandidateFormula candidates = item.getStructureCandidatesPage(k, false);
+        final PagedModelStructureCandidateFormula candidates = item.getStructureCandidatesPage(k, false);
 
         if (candidates == null || candidates.getContent() == null || candidates.getContent().isEmpty())
             return false;
@@ -266,7 +271,6 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
                 .map(StructureCandidateFormula::getDbLinks)
                 .filter(Objects::nonNull).flatMap(List::stream)
                 .map(DBLink::getName).distinct()
-                .filter(Objects::nonNull)
                 .anyMatch(filterDbs::contains);
     }
 
@@ -274,8 +278,8 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         CompoundFilterModel.ElementFilter filter = filterModel.getElementFilter();
         @NotNull FormulaConstraints constraints = filter.constraints;
         return item.getFormulaAnnotationAsBean().map(fc ->
-                (filter.matchFormula && constraints.isSatisfied(fc.getMolecularFormulaObj(), fc.getAdductObj().getIonization()))
-                        || (filter.matchPrecursorFormula && constraints.isSatisfied(fc.getAdductObj().neutralMoleculeToMeasuredNeutralMolecule(fc.getMolecularFormulaObj()), fc.getAdductObj().getIonization()))
+                (filter.matchFormula && constraints.isSatisfied(fc.getMolecularFormulaObj()))  //check if compound satisfies element constraints
+                        || (filter.matchPrecursorFormula && constraints.isSatisfied(fc.getAdductObj().neutralMoleculeToMeasuredNeutralMolecule(fc.getMolecularFormulaObj()))) //check if precursor formula satisfies element constraints
         ).orElse(false);
     }
 }

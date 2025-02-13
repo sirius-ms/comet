@@ -184,7 +184,6 @@ final class WebJobWatcher { //todo rename to RestJobWatcher
                             while (jobsIt.hasNext() && jobSubmission.size() <= MAX_SUBMIT_BATCH) {
                                 Pair<JobTable, RestWebJJob<?, ?, ?>> j = jobsIt.next();
                                 if (j.getSecond().isFinished()) {
-                                    System.out.println("removing canceled/finished job instead of submitting it!");
                                     jobsIt.remove();
                                 } else {
                                     jobSubmission.addJobInput(j.getSecond().getInput(), j.getFirst());
@@ -205,7 +204,11 @@ final class WebJobWatcher { //todo rename to RestJobWatcher
                                     wss.forEach(j -> {
                                         final RestWebJJob<?, ?, ?> restJJ = it.next();
                                         restJJ.submissionAck(j.getID());
-                                        waitingJobs.put(j.getID(), restJJ);
+                                        if (j.getStateEnum().ordinal() < de.unijena.bioinf.ms.rest.model.JobState.CRASHED.ordinal()) {
+                                            waitingJobs.put(j.getID(), restJJ);
+                                        }else {
+                                            restJJ.update(j);
+                                        }
                                     });
                                 });
 

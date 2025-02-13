@@ -35,11 +35,13 @@ import lombok.experimental.SuperBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static de.unijena.bioinf.ChemistryBase.utils.Utils.DOUBLE_DESC_NULL_LAST;
+
 @Getter
 @Setter
 @SuperBuilder
 @NoArgsConstructor
-public class FormulaCandidate extends AlignedFeatureAnnotation {
+public class FormulaCandidate extends AlignedFeatureAnnotation implements Comparable<FormulaCandidate> {
     /**
      * Unique identifier of this formula candidate
      */
@@ -66,6 +68,14 @@ public class FormulaCandidate extends AlignedFeatureAnnotation {
      */
     @Nullable
     protected Integer formulaRank;
+
+    /**
+     * Normalized Sirius Score of the formula candidate.
+     * If NULL result is not available
+     */
+    @Nullable
+    protected Double siriusScoreNormalized;
+
     /**
      * Sirius Score (isotope + tree score) of the formula candidate.
      * If NULL result is not available
@@ -91,5 +101,28 @@ public class FormulaCandidate extends AlignedFeatureAnnotation {
     @JsonIgnore
     public String getPrecursorFormulaWithCharge() {
         return getPrecursorFormula().toString() + (adduct.isPositive() ? "+":"-");
+    }
+
+    @JsonIgnore
+    @Override
+    public int compareTo(FormulaCandidate o) {
+        //Compare by ZODIAC score if both instances have it
+        int comparison = DOUBLE_DESC_NULL_LAST.compare(
+                getZodiacScore(),
+                o.getZodiacScore());
+
+        if (comparison != 0)
+            return comparison;
+
+        //Else return by SIRIUS score
+        comparison =  DOUBLE_DESC_NULL_LAST.compare(
+                getSiriusScore(),
+                o.getSiriusScore()
+        );
+
+        if (comparison != 0)
+            return comparison;
+
+        return getAdduct().compareTo(o.getAdduct());
     }
 }

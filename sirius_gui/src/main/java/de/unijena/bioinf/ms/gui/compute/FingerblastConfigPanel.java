@@ -27,8 +27,9 @@ import de.unijena.bioinf.ms.gui.utils.GuiUtils;
 import de.unijena.bioinf.ms.gui.utils.TextHeaderBoxPanel;
 import de.unijena.bioinf.ms.gui.utils.TwoColumnPanel;
 import de.unijena.bioinf.ms.gui.utils.jCheckboxList.JCheckBoxList;
-import de.unijena.bioinf.ms.nightsky.sdk.model.SearchableDatabase;
 import de.unijena.bioinf.ms.properties.PropertyManager;
+import io.sirius.ms.sdk.model.SearchableDatabase;
+import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -38,16 +39,19 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * @author Markus Fleischauer
  */
 
-//here we can show fingerid options. If it becomes to much, we can change this to a setting like tabbed pane
+//here we can show fingerid options. If it becomes too much, we can change this to a setting like tabbed pane
 public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOptions> {
+    @Getter
     private final StructureSearchStrategy structureSearchStrategy;
     private final JCheckBox pubChemFallback, epiRankingCheckBox;
+    private final JComboBox<ExpansiveSearchConfidenceMode.Mode> confidenceModeBox;
 
     protected final SiriusGui gui;
     protected final FormulaIDConfigPanel syncSource;
@@ -62,11 +66,11 @@ public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOption
         pubChemFallback.setSelected(true);
         pubChemFallback.setToolTipText("Search in the specified set of databases and use the PubChem database as fallback if no good hit is available");
 
-        structureSearchStrategy = new StructureSearchStrategy(gui, syncSource != null ? syncSource.getFormulaSearchStrategy() : null, () -> pubChemFallback.isSelected());
+        structureSearchStrategy = new StructureSearchStrategy(gui, syncSource != null ? syncSource.getFormulaSearchStrategy() : null, pubChemFallback::isSelected);
 
         parameterBindings.put("StructureSearchDB", () -> {
             List<SearchableDatabase> checkedDBs = structureSearchStrategy.getStructureSearchDBs();
-            return checkedDBs.isEmpty() ? null : checkedDBs.stream()
+            return checkedDBs.isEmpty() ? "," : checkedDBs.stream()
                     .map(SearchableDatabase::getDatabaseId)
                     .filter(db -> !(db.equals(DataSource.PUBCHEM.name()) && pubChemFallback.isSelected()))
                     .collect(Collectors.joining(","));
@@ -74,7 +78,7 @@ public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOption
 
 
         //confidence score approximate mode settings
-        JComboBox<ExpansiveSearchConfidenceMode.Mode> confidenceModeBox = GuiUtils.makeParameterComboBoxFromDescriptiveValues(
+        confidenceModeBox = GuiUtils.makeParameterComboBoxFromDescriptiveValues(
                 ExpansiveSearchConfidenceMode.Mode.getActiveModes(),
                 PropertyManager.DEFAULTS.createInstanceWithDefaults(ExpansiveSearchConfidenceMode.class).confidenceScoreSimilarityMode);
 
@@ -95,7 +99,7 @@ public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOption
 
         checkBoxPanel.setPreferredSize(new Dimension(confidenceModeBox.getPreferredSize().width, checkBoxPanel.getPreferredSize().height));  // Prevent resizing on unchecking checkbox
 
-        add(new TextHeaderBoxPanel("General", additionalOptions));
+        add(new TextHeaderBoxPanel("Search strategy", additionalOptions));
         add(structureSearchStrategy);
 
         parameterBindings.put("ExpansiveSearchConfidenceMode.confidenceScoreSimilarityMode", () -> {
@@ -110,7 +114,7 @@ public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOption
 
         parameterBindings.put("RankWithEpimetheus", () -> String.valueOf(epiRankingCheckBox.isSelected()));
 
-        pubChemFallback.addActionListener(e -> {
+        pubChemFallback.addChangeListener(e -> {
             List.of(confLabel, confidenceModeBox).forEach(c -> c.setVisible(pubChemFallback.isSelected()));
             refreshPubChem();
         });
@@ -127,6 +131,19 @@ public class FingerblastConfigPanel extends SubToolConfigPanel<FingerblastOption
             dbList.setItemEnabled(pubChemDB, true);
             dbList.setItemToolTip(pubChemDB, null);
         }
+    }
+
+    @Override
+    public void applyValuesFromPreset(Map<String, String> preset) {
+        ExpansiveSearchConfidenceMode.Mode expansiveMode = ExpansiveSearchConfidenceMode.Mode.valueOf(preset.get("ExpansiveSearchConfidenceMode.confidenceScoreSimilarityMode"));
+        if (expansiveMode == ExpansiveSearchConfidenceMode.Mode.OFF) {
+            pubChemFallback.setSelected(false);
+        } else {
+            pubChemFallback.setSelected(true);
+            confidenceModeBox.setSelectedItem(expansiveMode);
+        }
+
+        structureSearchStrategy.applyValuesFromPreset(preset);
     }
 
     private class EpiRankingCheckBoxListener implements ChangeListener {

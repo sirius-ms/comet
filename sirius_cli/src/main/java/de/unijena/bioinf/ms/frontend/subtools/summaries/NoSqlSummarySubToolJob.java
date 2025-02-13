@@ -21,6 +21,7 @@
 package de.unijena.bioinf.ms.frontend.subtools.summaries;
 
 import de.unijena.bioinf.ChemistryBase.chem.MolecularFormula;
+import de.unijena.bioinf.ChemistryBase.chem.RetentionTime;
 import de.unijena.bioinf.ChemistryBase.jobs.SiriusJobs;
 import de.unijena.bioinf.ChemistryBase.ms.MutableMs2Spectrum;
 import de.unijena.bioinf.ChemistryBase.ms.ft.FTree;
@@ -30,6 +31,7 @@ import de.unijena.bioinf.ms.frontend.core.ApplicationCore;
 import de.unijena.bioinf.ms.frontend.subtools.PostprocessingJob;
 import de.unijena.bioinf.ms.frontend.subtools.PreprocessingJob;
 import de.unijena.bioinf.ms.frontend.workflow.Workflow;
+import de.unijena.bioinf.ms.persistence.model.core.QualityReport;
 import de.unijena.bioinf.ms.persistence.model.core.feature.AlignedFeatures;
 import de.unijena.bioinf.ms.persistence.model.sirius.*;
 import de.unijena.bioinf.ms.properties.ParameterConfig;
@@ -41,24 +43,19 @@ import de.unijena.bioinf.storage.db.nosql.Database;
 import de.unijena.bioinf.storage.db.nosql.Filter;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.time.StopWatch;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+@Slf4j
 public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implements Workflow {
     private final SummaryOptions options;
 
@@ -103,8 +100,12 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
             }
         }
 
+        if (instances instanceof List<? extends Instance> il) {
+            il.sort(Comparator.comparing(i -> i.getRT().orElse(RetentionTime.NA())));
+        }
+
         try {
-            int maxProgress = (int) Math.ceil(project.countFeatures() * 1.01d); //upper bound on number of features. selected instances could be much lower. but iterator has now count
+            int maxProgress = (int) Math.ceil(project.countFeatures() * 1.01d); //upper bound on number of features. selected instances could be much lower. but iterator has no count
             logInfo("Writing summary files...");
             StopWatch w = new StopWatch();
             w.start();
@@ -116,40 +117,51 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
             Files.createDirectories(location);
             try (
                     NoSqlFormulaSummaryWriter formulaTopHit = options.topHitSummary
-                            ? initFormulaSummaryWriter(location, "formula_identifications.tsv") : null;
+                            ? initFormulaSummaryWriter(location, "formula_identifications") : null;
                     NoSqlFormulaSummaryWriter formulaTopHitAdducts = options.topHitWithAdductsSummary
-                            ? initFormulaSummaryWriter(location, "formula_identifications_adducts.tsv") : null;
+                            ? initFormulaSummaryWriter(location, "formula_identifications_adducts") : null;
                     NoSqlFormulaSummaryWriter formulaAll = options.fullSummary
-                            ? initFormulaSummaryWriter(location, "formula_identifications_all.tsv") : null;
+                            ? initFormulaSummaryWriter(location, "formula_identifications_all") : null;
                     NoSqlFormulaSummaryWriter formulaTopK = options.topK > 1
-                            ? initFormulaSummaryWriter(location, "formula_identifications_top-" + options.topK + ".tsv") : null;
+                            ? initFormulaSummaryWriter(location, "formula_identifications_top-" + options.topK) : null;
 
                     NoSqlStructureSummaryWriter structureTopHit = options.topHitSummary
-                            ? initStructureSummaryWriter(location, "structure_identifications.tsv") : null;
+                            ? initStructureSummaryWriter(location, "structure_identifications") : null;
                     NoSqlStructureSummaryWriter structureAll = options.fullSummary
-                            ? initStructureSummaryWriter(location, "structure_identifications_all.tsv") : null;
+                            ? initStructureSummaryWriter(location, "structure_identifications_all") : null;
                     NoSqlStructureSummaryWriter structureTopK = options.topK > 1
-                            ? initStructureSummaryWriter(location, "structure_identifications_top-" + options.topK + ".tsv") : null;
+                            ? initStructureSummaryWriter(location, "structure_identifications_top-" + options.topK) : null;
 
                     NoSqlDeNovoSummaryWriter deNovoTopHit = options.topHitSummary
-                            ? initDeNovoSummaryWriter(location, "denovo_structure_identifications.tsv") : null;
+                            ? initDeNovoSummaryWriter(location, "denovo_structure_identifications") : null;
                     NoSqlDeNovoSummaryWriter deNovoAll = options.fullSummary
-                            ? initDeNovoSummaryWriter(location, "denovo_structure_identifications_all.tsv") : null;
+                            ? initDeNovoSummaryWriter(location, "denovo_structure_identifications_all") : null;
                     NoSqlDeNovoSummaryWriter deNovoTopK = options.topK > 1
-                            ? initDeNovoSummaryWriter(location, "denovo_structure_identifications_top-" + options.topK + ".tsv") : null;
+                            ? initDeNovoSummaryWriter(location, "denovo_structure_identifications_top-" + options.topK) : null;
 
                     NoSqlCanopusSummaryWriter canopusFormula = options.topHitSummary
-                            ? initCanopusSummaryWriter(location, "canopus_formula_summary.tsv") : null;
+                            ? initCanopusSummaryWriter(location, "canopus_formula_summary") : null;
+                    NoSqlCanopusSummaryWriter canopusFormulaAll = options.fullSummary
+                            ? initCanopusSummaryWriter(location, "canopus_formula_summary_all") : null;
+                    NoSqlCanopusSummaryWriter canopusFormulaTopK = options.topK > 0
+                            ? initCanopusSummaryWriter(location, "canopus_formula_summary-" + options.topK) : null;
+
+                    // we do not stor top k or all for canopus structure since it would be redundant to the formula results.
                     NoSqlCanopusSummaryWriter canopusStructure = options.topHitSummary
-                            ? initCanopusSummaryWriter(location, "canopus_structure_summary.tsv") : null;
+                            ? initCanopusSummaryWriter(location, "canopus_structure_summary") : null;
 
                     NoSqlSpectrumSummaryWriter refSpectrum = options.topHitSummary
-                            ? initSpectrumSummaryWriter(location, "spectral_matches.tsv") : null;
+                            ? initSpectrumSummaryWriter(location, "spectral_matches") : null;
                     NoSqlSpectrumSummaryWriter refSpectrumAll = options.fullSummary
-                            ? initSpectrumSummaryWriter(location, "spectral_matches_all.tsv") : null;
+                            ? initSpectrumSummaryWriter(location, "spectral_matches_all") : null;
                     NoSqlSpectrumSummaryWriter refSpectrumTopK = options.topK > 0
-                            ? initSpectrumSummaryWriter(location, "spectral_matches_top-" + options.topK + ".tsv") : null;
+                            ? initSpectrumSummaryWriter(location, "spectral_matches_top-" + options.topK) : null;
 
+                    DataQualitySummaryWriter qualityWriter = options.qualitySummary
+                            ? initQualitySummaryWriter(location, "feature_quality") : null;
+
+                    ChemVistaSummaryWriter chemVistaWriter = options.chemVista
+                            ? initChemVistaWriter(location, "chemvista_summary") : null
             ) {
                 //we load all data on demand from project db without manual caching or re-usage.
                 //if this turns out to be too slow we can cache e.g. the formula candidates.
@@ -163,7 +175,11 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
                         boolean first = true;
                         MolecularFormula lastPrecursorFormula = null;
                         //we use the formula rank for search because its index, and we do not know whether siriusScore or zodiacScore was used for ranking.
-                        for (FormulaCandidate fc : project.getProject().findByFeatureId(f.getAlignedFeatureId(), FormulaCandidate.class, "formulaRank", Database.SortOrder.ASCENDING)) {
+                        Filter.FilterClause sortingFilter = Filter.and(
+                                Filter.where("alignedFeatureId").eq(f.getAlignedFeatureId()),
+                                Filter.where("formulaRank").gt(0));
+
+                        for (FormulaCandidate fc : project.getProject().getStorage().find(sortingFilter, FormulaCandidate.class)) {
                             boolean nothingWritten = true;
 
                             MolecularFormula currentPrecursorFormula = fc.getAdduct()
@@ -173,6 +189,7 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
                                     .map(FTreeResult::getFTree)
                                     .orElseThrow();
 
+                            // write top hits
                             if (formulaTopHit != null && first) {
                                 formulaTopHit.writeFormulaCandidate(f, fc, ftree);
                                 nothingWritten = false;
@@ -188,14 +205,33 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
                                 lastPrecursorFormula = currentPrecursorFormula;
                                 nothingWritten = false;
                             }
+
+
+                            // write top k hits
                             if (formulaTopK != null && fc.getFormulaRank() <= options.getTopK()) {
                                 formulaTopK.writeFormulaCandidate(f, fc, ftree);
                                 nothingWritten = false;
                             }
+                            if(canopusFormulaTopK != null && fc.getFormulaRank() <= options.getTopK()){
+                                CanopusPrediction cp = project.getProject().findByFormulaIdStr(fc.getFormulaId(), CanopusPrediction.class).findFirst().orElse(null);
+                                if (cp != null)
+                                    canopusFormulaTopK.writeCanopusPredictions(f, fc, cp);
+                                nothingWritten = false;
+                            }
+
+                            // write top all hits
                             if (formulaAll != null) {
                                 formulaAll.writeFormulaCandidate(f, fc, ftree);
                                 nothingWritten = false;
                             }
+                            if(canopusFormulaAll != null){
+                                CanopusPrediction cp = project.getProject().findByFormulaIdStr(fc.getFormulaId(), CanopusPrediction.class).findFirst().orElse(null);
+                                if (cp != null)
+                                    canopusFormulaAll.writeCanopusPredictions(f, fc, cp);
+                                nothingWritten = false;
+                            }
+
+
                             if (nothingWritten)
                                 break;
 
@@ -211,7 +247,11 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
                             boolean first = true;
                             int rank = 1;
                             FormulaCandidate lastFc = null;
-                            for (CsiStructureMatch sc : project.getProject().findByFeatureId(f.getAlignedFeatureId(), CsiStructureMatch.class, "structureRank", Database.SortOrder.ASCENDING)) {
+                            Filter.FilterClause sortingFilter = Filter.and(
+                                    Filter.where("alignedFeatureId").eq(f.getAlignedFeatureId()),
+                                    Filter.where("structureRank").gt(0));
+
+                            for (CsiStructureMatch sc : project.getProject().getStorage().find(sortingFilter, CsiStructureMatch.class)) {
                                 project.getProject().fetchFingerprintCandidate(sc, false);
                                 boolean nothingWritten = true;
                                 FormulaCandidate fc = (lastFc != null && lastFc.getFormulaId() == sc.getFormulaId())
@@ -225,6 +265,10 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
                                     CanopusPrediction cp = project.getProject().findByFormulaIdStr(fc.getFormulaId(), CanopusPrediction.class).findFirst().orElse(null);
                                     if (cp != null)
                                         canopusStructure.writeCanopusPredictions(f, fc, cp);
+                                    nothingWritten = false;
+                                }
+                                if (chemVistaWriter != null && first) {
+                                    chemVistaWriter.writeStructureCandidate(f, fc, sc, ssr);
                                     nothingWritten = false;
                                 }
                                 if (formulaTopK != null && rank <= options.getTopK()) {
@@ -303,7 +347,7 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
                             Ms2ReferenceSpectrum reference;
                             try {
                                 if (sources.containsKey(match.getDbName())) {
-                                    reference = ApplicationCore.WEB_API.getChemDB().getReferenceSpectrum(sources.get(match.getDbName()), match.getUuid());
+                                    reference = ApplicationCore.WEB_API.getChemDB().getMs2ReferenceSpectrum(sources.get(match.getDbName()), match.getUuid());
                                 } else {
                                     reference = null;
                                 }
@@ -335,8 +379,39 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
                             rank++;
                         }
                     }
+
+                    // data quality summary
+                    if (qualityWriter != null) {
+                        QualityReport qr = project.getProject().findByFeatureIdStr(f.getAlignedFeatureId(), QualityReport.class).findFirst().orElse(null);
+                        qualityWriter.writeFeatureQuality(f, qr);
+                    }
                 }
+
+                if (formulaTopHit != null) formulaTopHit.flush();
+                if (formulaTopHitAdducts != null) formulaTopHitAdducts.flush();
+                if (formulaAll != null) formulaAll.flush();
+                if (formulaTopK != null) formulaTopK.flush();
+
+                if (structureTopHit != null) structureTopHit.flush();
+                if (structureAll != null) structureAll.flush();
+                if (structureTopK != null) structureTopK.flush();
+
+                if (deNovoTopHit != null) deNovoTopHit.flush();
+                if (deNovoAll != null) deNovoAll.flush();
+                if (deNovoTopK != null) deNovoTopK.flush();
+
+                if (canopusFormula != null) canopusFormula.flush();
+                if (canopusStructure != null) canopusStructure.flush();
+
+                if (refSpectrum != null) refSpectrum.flush();
+                if (refSpectrumAll != null) refSpectrumAll.flush();
+                if (refSpectrumTopK != null) refSpectrumTopK.flush();
+
+                if (qualityWriter != null) qualityWriter.flush();
+                if (chemVistaWriter != null) chemVistaWriter.flush();
+
                 w.stop();
+                log.info("Summaries written in: {}", w);
                 updateProgress(maxProgress, maxProgress, "Summaries written in: " + w);
                 return true;
             }
@@ -347,42 +422,54 @@ public class NoSqlSummarySubToolJob extends PostprocessingJob<Boolean> implement
     }
 
     NoSqlFormulaSummaryWriter initFormulaSummaryWriter(Path location, String filename) throws IOException {
-        NoSqlFormulaSummaryWriter formulaSummaryWriter = new NoSqlFormulaSummaryWriter(makeFileWriter(location, filename));
+        NoSqlFormulaSummaryWriter formulaSummaryWriter = new NoSqlFormulaSummaryWriter(makeTableWriter(location, filename));
         formulaSummaryWriter.writeHeader();
         return formulaSummaryWriter;
     }
 
     NoSqlCanopusSummaryWriter initCanopusSummaryWriter(Path location, String filename) throws IOException {
-        NoSqlCanopusSummaryWriter canopusSummaryWriter = new NoSqlCanopusSummaryWriter(makeFileWriter(location, filename));
+        NoSqlCanopusSummaryWriter canopusSummaryWriter = new NoSqlCanopusSummaryWriter(makeTableWriter(location, filename));
         canopusSummaryWriter.writeHeader();
         return canopusSummaryWriter;
     }
 
     NoSqlStructureSummaryWriter initStructureSummaryWriter(Path location, String filename) throws IOException {
-        NoSqlStructureSummaryWriter structureSummaryWriter = new NoSqlStructureSummaryWriter(makeFileWriter(location, filename));
+        NoSqlStructureSummaryWriter structureSummaryWriter = new NoSqlStructureSummaryWriter(makeTableWriter(location, filename));
         structureSummaryWriter.writeHeader();
         return structureSummaryWriter;
     }
 
     NoSqlDeNovoSummaryWriter initDeNovoSummaryWriter(Path location, String filename) throws IOException {
-        NoSqlDeNovoSummaryWriter denovoSummaryWriter = new NoSqlDeNovoSummaryWriter(makeFileWriter(location, filename));
+        NoSqlDeNovoSummaryWriter denovoSummaryWriter = new NoSqlDeNovoSummaryWriter(makeTableWriter(location, filename));
         denovoSummaryWriter.writeHeader();
         return denovoSummaryWriter;
     }
 
     NoSqlSpectrumSummaryWriter initSpectrumSummaryWriter(Path location, String filename) throws IOException {
-        NoSqlSpectrumSummaryWriter spectrumSummaryWriter = new NoSqlSpectrumSummaryWriter(makeFileWriter(location, filename));
+        NoSqlSpectrumSummaryWriter spectrumSummaryWriter = new NoSqlSpectrumSummaryWriter(makeTableWriter(location, filename));
         spectrumSummaryWriter.writeHeader();
         return spectrumSummaryWriter;
     }
 
-    private BufferedWriter makeFileWriter(Path location, String filename) throws IOException {
-        OutputStream out = Files.newOutputStream(location.resolve(filename)); //todo some compression support
-//            OutputStream out = options.compress
-//                    ? new ZipOutputStream(Files.newOutputStream(options.location.resolve(filename + ".zip")))
-//                    : Files.newOutputStream(options.location.resolve(filename));
+    DataQualitySummaryWriter initQualitySummaryWriter(Path location, String filename) throws IOException {
+        DataQualitySummaryWriter writer = new DataQualitySummaryWriter(makeTableWriter(location, filename));
+        writer.writeHeader();
+        return writer;
+    }
 
-        return new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
+    ChemVistaSummaryWriter initChemVistaWriter(Path location, String filename) throws IOException {
+        ChemVistaSummaryWriter writer = new ChemVistaSummaryWriter(new CsvTableWriter(location, filename, options.quoteStrings));
+        writer.writeHeader();
+        return writer;
+    }
+
+    private SummaryTableWriter makeTableWriter(Path location, String filename) throws IOException {
+        return switch (options.format) {
+            case TSV -> new TsvTableWriter(location, filename, options.quoteStrings);
+            case ZIP -> new ZipTableWriter(location, filename, options.quoteStrings);
+            case CSV -> new CsvTableWriter(location, filename, options.quoteStrings);
+            case XLSX -> new XlsxTableWriter(location, filename);
+        };
     }
 
 

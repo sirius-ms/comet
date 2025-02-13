@@ -19,15 +19,19 @@
 
 package de.unijena.bioinf.ms.middleware.model.features;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import de.unijena.bioinf.ChemistryBase.utils.DataQuality;
 import de.unijena.bioinf.ms.middleware.model.annotations.FeatureAnnotations;
+import de.unijena.bioinf.ms.middleware.model.tags.Tag;
+import de.unijena.bioinf.ms.persistence.model.sirius.ComputedSubtools;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -39,8 +43,9 @@ import java.util.Set;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AlignedFeature {
-    @Schema(enumAsRef = true, name = "AlignedFeatureOptField", nullable = true)
-    public enum OptField {none, msData, topAnnotations, topAnnotationsDeNovo}
+
+    @Schema(name = "AlignedFeatureOptField", nullable = true)
+    public enum OptField {none, msData, topAnnotations, topAnnotationsDeNovo, computedTools, tags}
 
     // identifier
     @NotNull
@@ -50,11 +55,6 @@ public class AlignedFeature {
 
     // identifier source
     protected String name;
-
-    /**
-     * Data tag (this is a temporary solution, will be replaced by tagging system)
-     */
-    protected String tag;
 
     /**
      * Externally provided FeatureId (e.g. by some preprocessing tool).
@@ -81,6 +81,8 @@ public class AlignedFeature {
     protected Double rtStartSeconds;
     @Schema(nullable = true)
     protected Double rtEndSeconds;
+    @Schema(nullable = true)
+    protected Double rtApexSeconds;
 
     /**
      * Quality of this feature.
@@ -128,4 +130,17 @@ public class AlignedFeature {
      * True if any computation is modifying this feature or its results
      */
     protected boolean computing;
+
+    @Schema(nullable = true, requiredMode = Schema.RequiredMode.NOT_REQUIRED, description =
+                    "Specifies which tools have been executed for this feature. " +
+                    "Can be used to estimate which results can be expected. " +
+                            "Null if it was not requested und non-null otherwise.")
+    @JsonIgnoreProperties(value = { "alignedFeatureId" })
+    protected ComputedSubtools computedTools;
+
+    /**
+     * Key: tagName, value: tag
+     */
+    @Schema(nullable = true)
+    protected Map<String, ? extends Tag> tags;
 }

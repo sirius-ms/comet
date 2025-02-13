@@ -23,19 +23,20 @@ import de.unijena.bioinf.chemdb.custom.CustomDatabases;
 import de.unijena.bioinf.ms.gui.SiriusGui;
 import de.unijena.bioinf.ms.gui.compute.jjobs.Jobs;
 import de.unijena.bioinf.ms.gui.configs.Buttons;
+import de.unijena.bioinf.ms.gui.configs.Colors;
 import de.unijena.bioinf.ms.gui.configs.Icons;
 import de.unijena.bioinf.ms.gui.dialogs.DialogHeader;
 import de.unijena.bioinf.ms.gui.dialogs.StacktraceDialog;
 import de.unijena.bioinf.ms.gui.table.SiriusListCellRenderer;
 import de.unijena.bioinf.ms.gui.utils.GuiUtils;
 import de.unijena.bioinf.ms.gui.utils.TextHeaderBoxPanel;
-import de.unijena.bioinf.ms.nightsky.sdk.model.SearchableDatabase;
+import io.sirius.ms.sdk.model.SearchableDatabase;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -67,11 +68,11 @@ public class DatabaseDialog extends JDialog {
         setTitle("Custom Databases");
         setLayout(new BorderLayout());
 
-        JPanel header = new DialogHeader(Icons.DB_64);
+        JPanel header = new DialogHeader(Icons.DB.derive(64,64));
         add(header, BorderLayout.NORTH);
 
         dbList = new JList<>();
-        dbList.setCellRenderer(new SiriusListCellRenderer(v -> ((SearchableDatabase) v).getDatabaseId()));
+        dbList.setCellRenderer(new ErrorDatabaseCellRenderer());
         dbList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         dbView = new DatabaseView();
 
@@ -81,35 +82,6 @@ public class DatabaseDialog extends JDialog {
         JButton openDB = Buttons.getFileChooserButton16("Add existing Database");
 
         loadDatabaseList();
-
-        dbList.addListSelectionListener(e -> {
-            SearchableDatabase db = dbList.getSelectedValue();
-            dbView.updateContent(db);
-            if (db != null) {
-                editDB.setEnabled(!db.isUpdateNeeded());
-                deleteDB.setEnabled(true);
-            } else {
-                editDB.setEnabled(false);
-                deleteDB.setEnabled(false);
-            }
-        });
-
-        JScrollPane scroll = new JScrollPane(dbList, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        TextHeaderBoxPanel pane = new TextHeaderBoxPanel("Custom Databases", scroll);
-        pane.setBorder(BorderFactory.createEmptyBorder(GuiUtils.SMALL_GAP, GuiUtils.SMALL_GAP, 0, 0));
-
-        final Box but = Box.createHorizontalBox();
-        but.add(Box.createHorizontalGlue());
-        but.add(deleteDB);
-        but.add(editDB);
-        but.add(openDB);
-        but.add(addCustomDb);
-        editDB.setEnabled(false);
-        deleteDB.setEnabled(false);
-
-        add(but, BorderLayout.SOUTH);
-        add(pane, BorderLayout.CENTER);
-        add(dbView, BorderLayout.EAST);
 
         Action editSelectedDb = new AbstractAction() {
             @Override
@@ -161,12 +133,43 @@ public class DatabaseDialog extends JDialog {
             }
         };
 
+        dbList.addListSelectionListener(e -> {
+            SearchableDatabase db = dbList.getSelectedValue();
+            dbView.updateContent(db);
+            if (db != null) {
+                editSelectedDb.setEnabled(!db.isUpdateNeeded() && (db.getErrorMessage() == null || db.getErrorMessage().isBlank()));
+                deleteSelectedDb.setEnabled(true);
+            } else {
+                editSelectedDb.setEnabled(false);
+                deleteSelectedDb.setEnabled(false);
+            }
+            editDB.setEnabled(editSelectedDb.isEnabled());
+            deleteDB.setEnabled(deleteSelectedDb.isEnabled());
+        });
+
+        JScrollPane scroll = new JScrollPane(dbList, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        TextHeaderBoxPanel pane = new TextHeaderBoxPanel("Custom Databases", scroll);
+        pane.setBorder(BorderFactory.createEmptyBorder(GuiUtils.SMALL_GAP, GuiUtils.SMALL_GAP, 0, 0));
+
+        final Box but = Box.createHorizontalBox();
+        but.add(Box.createHorizontalGlue());
+        but.add(deleteDB);
+        but.add(editDB);
+        but.add(openDB);
+        but.add(addCustomDb);
+        editDB.setEnabled(false);
+        deleteDB.setEnabled(false);
+
+        add(but, BorderLayout.SOUTH);
+        add(pane, BorderLayout.CENTER);
+        add(dbView, BorderLayout.EAST);
+
         addCustomDb.addActionListener(e -> new ImportDatabaseDialog(this));
         editDB.addActionListener(editSelectedDb);
         deleteDB.addActionListener(deleteSelectedDb);
 
         JFileChooser openDbFileChooser = new JFileChooser();
-        openDbFileChooser.setFileFilter(new CustomDbFileFilter());
+        openDbFileChooser.setFileFilter(new FileNameExtensionFilter("SIRIUS custom database files", CustomDatabases.CUSTOM_DB_SUFFIX.replace(".", "")));
         openDbFileChooser.setMultiSelectionEnabled(true);
         openDB.addActionListener(e -> {
             if (openDbFileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -179,7 +182,7 @@ public class DatabaseDialog extends JDialog {
                                         c.databases().addDatabases(files.stream().map(File::getAbsolutePath).toList()));
                                 if (newDbs == null || newDbs.isEmpty())
                                     throw new RuntimeException("Not Database returned from Job. Open Databases probably failed.");
-                                whenCustomDbIsAdded(newDbs.iterator().next().getDatabaseId());
+                                whenCustomDbIsAdded(newDbs.getFirst().getDatabaseId());
                             }).awaitResult();
                 } catch (ExecutionException ex) {
                     getGui().getSiriusClient().unwrapErrorResponse(ex).ifPresentOrElse(
@@ -201,7 +204,7 @@ public class DatabaseDialog extends JDialog {
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
                     int i = dbList.getSelectedIndex();
-                    if (i >= 0 && dbList.getCellBounds(i, i).contains(e.getPoint())) {
+                    if (i >= 0 && dbList.getCellBounds(i, i).contains(e.getPoint()) && editSelectedDb.isEnabled()) {
                         editSelectedDb.actionPerformed(null);
                     }
                 }
@@ -225,7 +228,7 @@ public class DatabaseDialog extends JDialog {
 
     private void loadDatabaseList() {
         customDatabases = Jobs.runInBackgroundAndLoad(getOwner(), "Loading DBs...",
-                () -> gui.applySiriusClient((c, pid) -> c.databases().getCustomDatabases(true))
+                () -> gui.applySiriusClient((c, pid) -> c.databases().getCustomDatabases(true, true))
         ).getResult();
 
         customDatabases.sort(Comparator.comparing(SearchableDatabase::getDatabaseId));
@@ -273,6 +276,9 @@ public class DatabaseDialog extends JDialog {
                         + "</html>"));
 
                 content.setToolTipText(c.getLocation());
+            } else if (c.getErrorMessage() != null && !c.getErrorMessage().isBlank()) {
+                content.setText("<html><p>" + c.getErrorMessage() + "</p></html>");
+                content.setToolTipText(c.getLocation());
             } else {
                 content.setText("Empty custom database.");
                 content.setToolTipText(null);
@@ -280,16 +286,20 @@ public class DatabaseDialog extends JDialog {
         }
     }
 
-    public static class CustomDbFileFilter extends FileFilter {
+    protected static class ErrorDatabaseCellRenderer extends SiriusListCellRenderer {
 
-        @Override
-        public boolean accept(File f) {
-            return f.isDirectory() || f.getName().endsWith(CustomDatabases.CUSTOM_DB_SUFFIX);
+        public ErrorDatabaseCellRenderer() {
+            super(v -> ((SearchableDatabase) v).getDatabaseId());
         }
 
         @Override
-        public String getDescription() {
-            return "SIRIUS custom database files";
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            SearchableDatabase db = (SearchableDatabase) value;
+            if (db.getErrorMessage() != null && !db.getErrorMessage().isBlank()) {
+                setForeground(Colors.TEXT_ERROR);
+            }
+            return this;
         }
     }
 }

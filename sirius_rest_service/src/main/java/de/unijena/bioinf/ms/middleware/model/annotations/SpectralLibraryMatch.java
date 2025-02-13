@@ -23,6 +23,7 @@ package de.unijena.bioinf.ms.middleware.model.annotations;
 import de.unijena.bioinf.ms.middleware.model.spectra.BasicSpectrum;
 import de.unijena.bioinf.ms.persistence.model.sirius.SpectraMatch;
 import de.unijena.bioinf.spectraldb.SpectralSearchResult;
+import de.unijena.bioinf.spectraldb.SpectrumType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -38,7 +39,7 @@ import java.util.List;
 @Jacksonized
 public class SpectralLibraryMatch {
 
-    @Schema(enumAsRef = true, name = "SpectralLibraryMatchOptField", nullable = true)
+    @Schema(name = "SpectralLibraryMatchOptField", nullable = true)
     public enum OptField {none, referenceSpectrum}
 
     public final String specMatchId;
@@ -69,8 +70,14 @@ public class SpectralLibraryMatch {
     private final String exactMass;
     private final String smiles;
 
+    @Schema(defaultValue = "SPECTRUM")
+    private final TargetType target;
+
+    @Schema(defaultValue = "COSINE")
+    private final MatchType type;
+
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-    private final String candidateInChiKey;
+    private final String inchiKey;
 
     @Schema(nullable = true)
     @Setter
@@ -95,7 +102,9 @@ public class SpectralLibraryMatch {
                 .splash(result.getSplash())
                 .exactMass(Double.toString(result.getExactMass()))
                 .smiles(result.getSmiles())
-                .candidateInChiKey(result.getCandidateInChiKey());
+                .target(result.getSpectrumType()== SpectrumType.MERGED_SPECTRUM ? TargetType.MERGED : TargetType.SPECTRUM)
+                .type(result.isAnalog() ? MatchType.ANALOG : MatchType.COSINE)
+                .inchiKey(result.getCandidateInChiKey());
 
         if (result.getMolecularFormula() != null) {
             builder.molecularFormula(result.getMolecularFormula().toString());
@@ -116,5 +125,21 @@ public class SpectralLibraryMatch {
                 .filter(s -> candidateInChiKey == null || candidateInChiKey.equals(s.getCandidateInChiKey()))
                 .map(m-> SpectralLibraryMatch.of(m, null))
                 .toList();
+    }
+
+    public static enum MatchType {
+        COSINE,
+        ANALOG;
+    }
+
+    public static enum TargetType {
+        SPECTRUM,
+        MERGED;
+
+        public SpectrumType asSpectrumType() {
+            if (this==SPECTRUM) return SpectrumType.SPECTRUM;
+            if (this==MERGED) return SpectrumType.MERGED_SPECTRUM;
+            throw new IllegalArgumentException("Unknown spectrum type");
+        }
     }
 }

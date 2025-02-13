@@ -21,7 +21,7 @@ package de.unijena.bioinf.ms.gui.fingerid;
 
 import de.unijena.bioinf.chemdb.DataSource;
 import de.unijena.bioinf.ms.gui.table.SiriusTableFormat;
-import de.unijena.bioinf.ms.nightsky.sdk.model.DBLink;
+import io.sirius.ms.sdk.model.DBLink;
 
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -78,8 +78,8 @@ public class CandidateTableFormat extends SiriusTableFormat<FingerprintCandidate
         if (column == col++) return result.getCandidate().getDbLinks().stream()
                 .filter(l -> DataSource.LIPID.name().equals(l.getName()))
                 .map(DBLink::getId).collect(Collectors.joining(","));
-        if (column == col++) return (result.isDatabase() ? "■" : "");
-        if (column == col++) return (result.isDeNovo() ? "■" : "");
+        if (column == col++) return (result.isDatabase() ? "\u25AA" : "");  //DejaVu Sans
+        if (column == col++) return (result.isDeNovo() ? "\u25AA" : ""); //DejaVu Sans
         if (column == col) return isBest.apply(result);
 
         throw new IllegalStateException();

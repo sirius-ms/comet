@@ -27,12 +27,14 @@ import de.unijena.bioinf.ms.gui.fingerid.CandidateListDetailView;
 import de.unijena.bioinf.ms.gui.fingerid.StructureList;
 import de.unijena.bioinf.ms.gui.mainframe.result_panel.PanelDescription;
 import de.unijena.bioinf.ms.gui.mainframe.result_panel.ResultPanel;
+import de.unijena.bioinf.ms.gui.table.ActionList;
 import de.unijena.bioinf.ms.gui.utils.ToolbarToggleButton;
+import de.unijena.bioinf.ms.gui.utils.loading.Loadable;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class DeNovoStructureListDetailViewPanel extends JPanel implements PanelDescription {
+public class DeNovoStructureListDetailViewPanel extends JPanel implements PanelDescription, Loadable {
     @Override
     public String getDescription() {
         return "<html>"
@@ -56,13 +58,13 @@ public class DeNovoStructureListDetailViewPanel extends JPanel implements PanelD
 
     protected class DeNovoCandidateListDetailView extends CandidateListDetailView {
         public DeNovoCandidateListDetailView(ResultPanel resultPanel, StructureList sourceList, SiriusGui gui) {
-            super(resultPanel, sourceList, gui);
+            super(resultPanel, sourceList, gui, instanceBean -> instanceBean.getComputedTools().isDeNovoSearch());
         }
 
         @Override
         protected JToolBar getToolBar() {
             JToolBar tb = super.getToolBar();
-            ToolbarToggleButton showDatabaseHits = new ToolbarToggleButton(null, Icons.DB_LENS_24, "Show CSI:FingerID structure database hits together with MsNovelist de novo structure candidates.");
+            ToolbarToggleButton showDatabaseHits = new ToolbarToggleButton(null, Icons.DB_LENS.derive(24,24), "Show CSI:FingerID structure database hits together with MsNovelist de novo structure candidates.");
             showDatabaseHits.setSelected(true);
             tb.add(showDatabaseHits, getIndexOfSecondGap(tb) + 1);
 
@@ -73,5 +75,14 @@ public class DeNovoStructureListDetailViewPanel extends JPanel implements PanelD
 
             return tb;
         }
+    }
+
+    @Override
+    public boolean setLoading(boolean loading, boolean absolute) {
+        if (loading)
+            list.showCenterCard(ActionList.ViewState.LOADING);
+        else
+            list.showCenterCard(ActionList.ViewState.DATA);
+        return loading;
     }
 }

@@ -23,8 +23,8 @@ package de.unijena.bioinf.ms.gui.fingerid;
 import de.unijena.bioinf.ms.gui.configs.Colors;
 import de.unijena.bioinf.ms.gui.table.ActiveElementChangedListener;
 import de.unijena.bioinf.ms.gui.utils.GuiUtils;
-import de.unijena.bioinf.ms.nightsky.sdk.model.ConfidenceMode;
-import de.unijena.bioinf.ms.nightsky.sdk.model.FeatureAnnotations;
+import io.sirius.ms.sdk.model.ConfidenceMode;
+import io.sirius.ms.sdk.model.FeatureAnnotations;
 import de.unijena.bioinf.projectspace.InstanceBean;
 
 import javax.swing.*;
@@ -37,7 +37,7 @@ public class ExpansiveSearchLabel extends JLabel implements ActiveElementChanged
 
     public ExpansiveSearchLabel(StructureList source) {
         setBorder(BorderFactory.createEmptyBorder(3, GuiUtils.SMALL_GAP, 3, GuiUtils.SMALL_GAP));
-        setForeground(Color.WHITE);
+        setForeground(Colors.EXPANSIVE_SEARCH_WARNING_TEXT);
         setBackground(Colors.EXPANSIVE_SEARCH_WARNING);
         setOpaque(true);
         setToolTipText(GuiUtils.formatToolTip(

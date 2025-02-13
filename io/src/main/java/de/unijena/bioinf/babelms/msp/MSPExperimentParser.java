@@ -117,9 +117,8 @@ public class MSPExperimentParser extends MSPSpectralParser implements Parser<Ms2
                         MSP.parsePrecursorMZ(fields).ifPresent(exp::setIonMass);
                         //optional
                         fields.getField(MSP.INCHI)
-                                .filter(s -> !"null".equalsIgnoreCase(s))
-                                .filter(s -> !s.isBlank())
-                                .map(inchi -> MSP.getWithSynonyms(finFields, MSP.INCHI_KEY).filter(s -> !s.isBlank()).map(key -> InChIs.newInChI(key, inchi)).
+                                .filter(InChIs::isInchi)
+                                .map(inchi -> MSP.getWithSynonyms(finFields, MSP.INCHI_KEY).filter(InChIs::isInchiKey).map(key -> InChIs.newInChI(key, inchi)).
                                         orElse(InChIs.newInChI(inchi))).ifPresent(exp::annotate);
                         fields.getField(MSP.SMILES)
                                 .filter(s -> !"null".equalsIgnoreCase(s))
@@ -131,6 +130,14 @@ public class MSPExperimentParser extends MSPSpectralParser implements Parser<Ms2
                                 .map(Splash::new).ifPresent(exp::annotate);
                         MSP.getWithSynonyms(fields, MSP.INSTRUMENT_TYPE).map(MsInstrumentation::getBestFittingInstrument).ifPresent(exp::annotate);
                         MSP.parseRetentionTime(fields).ifPresent(exp::annotate);
+
+                        Optional<String> instrument_type = MSP.getWithSynonyms(fields, MSP.INSTRUMENT_TYPE);
+                        Optional<String> instrument = MSP.getWithSynonyms(fields, MSP.INSTRUMENT);
+                        Optional<String> ce = MSP.getWithSynonyms(fields, MSP.COL_ENERGY);
+
+                        if (instrument_type.isPresent()) fields.put("instrument_type", instrument_type.get());
+                        if (instrument.isPresent()) fields.put("instrument", instrument.get());
+                        if (ce.isPresent()) fields.put("ce", ce.get());
                     }
 
                 if (clearSpectrum)

@@ -29,7 +29,7 @@ import de.unijena.bioinf.ms.gui.mainframe.MainFrame;
 import de.unijena.bioinf.ms.gui.utils.ErrorReportingDocumentListener;
 import de.unijena.bioinf.ms.gui.utils.PlaceholderTextField;
 import de.unijena.bioinf.ms.gui.utils.TwoColumnPanel;
-import de.unijena.bioinf.ms.nightsky.sdk.model.ProjectInfoOptField;
+import io.sirius.ms.sdk.model.ProjectInfoOptField;
 import de.unijena.bioinf.ms.properties.PropertyManager;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
@@ -68,7 +68,7 @@ public class ProjectCreateAction extends ProjectOpenAction {
 
     public ProjectCreateAction(SiriusGui gui) {
         super("New", gui);
-        putValue(Action.LARGE_ICON_KEY, Icons.ADD_DOC_32);
+        putValue(Action.LARGE_ICON_KEY, Icons.ADD_DOC.derive(32,32));
         putValue(Action.SHORT_DESCRIPTION, "Create a new empty project at the given location.");
         setEnabled(true);
     }
@@ -87,17 +87,9 @@ public class ProjectCreateAction extends ProjectOpenAction {
         jfc.addChoosableFileFilter(new NoSQLProjectFileFilter());
 
         //region jfilechooser hack
-
-        final Properties props = SiriusProperties.SIRIUS_PROPERTIES_FILE().asProperties();
-        final String theme = props.getProperty("de.unijena.bioinf.sirius.ui.theme", "Light");
-
         JPanel chooserSouthComponent;
-        if (theme.equals("Classic")) {
-            chooserSouthComponent = (JPanel) ((BorderLayout) jfc.getLayout()).getLayoutComponent(jfc, BorderLayout.SOUTH);
-        } else {
-            JPanel central = (JPanel) ((BorderLayout) jfc.getLayout()).getLayoutComponent(BorderLayout.CENTER);
-            chooserSouthComponent = (JPanel) ((BorderLayout) central.getLayout()).getLayoutComponent(jfc, BorderLayout.SOUTH);
-        }
+        JPanel central = (JPanel) ((BorderLayout) jfc.getLayout()).getLayoutComponent(BorderLayout.CENTER);
+        chooserSouthComponent = (JPanel) ((BorderLayout) central.getLayout()).getLayoutComponent(jfc, BorderLayout.SOUTH);
 
         PlaceholderTextField projectNameField = new PlaceholderTextField("");
 
@@ -211,7 +203,7 @@ public class ProjectCreateAction extends ProjectOpenAction {
                 onSuccess.accept(projectName, selectedFile.toPath());
 
             } catch (Exception e) {
-                new StacktraceDialog(mainFrame, e.getMessage(), e);
+                Jobs.runEDTLater(() -> new StacktraceDialog(mainFrame, e.getMessage(), e));
             }
         }
     }
@@ -240,7 +232,7 @@ public class ProjectCreateAction extends ProjectOpenAction {
         try {
             String pid = Jobs.runInBackgroundAndLoad(gui.getMainFrame(), "Creating Project...", () ->
                     gui.getSiriusClient().projects()
-                            .createProjectSpace(projectId, projectPath.toAbsolutePath().toString(), List.of(ProjectInfoOptField.NONE))
+                            .createProject(projectId, projectPath.toAbsolutePath().toString(), List.of(ProjectInfoOptField.NONE))
                             .getProjectId()
 
             ).awaitResult();

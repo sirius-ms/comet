@@ -17,9 +17,11 @@ import de.unijena.bioinf.lcms.statistics.SampleStats;
 import de.unijena.bioinf.lcms.trace.ProcessedSample;
 import de.unijena.bioinf.lcms.trace.ProjectedTrace;
 import de.unijena.bioinf.lcms.trace.Trace;
+import de.unijena.bioinf.lcms.trace.segmentation.PersistentHomology;
 import de.unijena.bioinf.lcms.trace.segmentation.TraceSegment;
 import de.unijena.bioinf.lcms.trace.segmentation.TraceSegmentationStrategy;
 import de.unijena.bioinf.lcms.utils.MultipleCharges;
+import de.unijena.bioinf.lcms.utils.Tracker;
 import de.unijena.bioinf.ms.persistence.model.core.feature.*;
 import de.unijena.bioinf.ms.persistence.model.core.spectrum.IsotopePattern;
 import de.unijena.bioinf.ms.persistence.model.core.spectrum.MSData;
@@ -27,17 +29,21 @@ import de.unijena.bioinf.ms.persistence.model.core.spectrum.MergedMSnSpectrum;
 import de.unijena.bioinf.ms.persistence.model.core.trace.RawTraceRef;
 import de.unijena.bioinf.ms.persistence.model.core.trace.SourceTrace;
 import de.unijena.bioinf.ms.persistence.model.core.trace.TraceRef;
+import de.unijena.bionf.spectral_alignment.CosineQueryUtils;
+import de.unijena.bionf.spectral_alignment.IntensityWeightedSpectralAlignment;
+import de.unijena.bionf.spectral_alignment.SpectralSimilarity;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickFeaturesAndImportToSirius.DbMapper>  {
 
@@ -79,7 +85,7 @@ public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickF
     }
 
     @Override
-    public AlignedFeatures[] importMergedTrace(TraceSegmentationStrategy traceSegmenter, SiriusDatabaseAdapter adapter, DbMapper dbMapper, ProcessedSample mergedSample, MergedTrace mergedTrace, String tag) throws IOException {
+    public AlignedFeatures[] importMergedTrace(TraceSegmentationStrategy traceSegmenter, SiriusDatabaseAdapter adapter, DbMapper dbMapper, ProcessedSample mergedSample, MergedTrace mergedTrace, Tracker tracker) throws IOException {
         // import each individual trace
         MergeTraceId tid = importMergedTraceWithoutIsotopes(adapter, dbMapper, mergedTrace);
         // now import isotopes
@@ -88,21 +94,65 @@ public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickF
             isotopes[k] = importMergedTraceWithoutIsotopes(adapter, dbMapper, mergedTrace.getIsotopes()[k]);
         }
         // now extract the compounds
-        AlignedFeatures[] features = extractCompounds(traceSegmenter, adapter, dbMapper, mergedSample, mergedTrace, tid, isotopes, tag);
+        AlignedFeatures[] features = extractCompounds(traceSegmenter, adapter, dbMapper, mergedSample, mergedTrace, tid, isotopes, tracker);
         if (features.length == 0) {
             removeMergedTrace(adapter, tid, isotopes);
+            tracker.noFeatureFound(mergedTrace);
+        } else {
+            tracker.importFeatures(mergedTrace, features);
         }
         return features;
     }
 
-    private AlignedFeatures[] extractCompounds(TraceSegmentationStrategy traceSegmenter, SiriusDatabaseAdapter adapter, DbMapper dbMapper, ProcessedSample mergedSample, MergedTrace mergedTrace, MergeTraceId dbId, MergeTraceId[] dbIsotopeIds, String tag) {
+    private AlignedFeatures[] extractCompounds(TraceSegmentationStrategy traceSegmenter, SiriusDatabaseAdapter adapter, DbMapper dbMapper, ProcessedSample mergedSample, MergedTrace mergedTrace, MergeTraceId dbId, MergeTraceId[] dbIsotopeIds, Tracker tracker) {
         // first we use segmentation to split the trace into segments
         // when then apply this segments to all traces and isotopes
-        TraceSegment[] traceSegments = segmentationStrategy.extractMergedSegments(traceSegmenter, mergedSample, mergedTrace);
-
+        tracker.startExtractingCompounds(mergedSample, mergedTrace);
+        MergedFeatureExtractionStrategy.Result pickedFeatures = segmentationStrategy.featureFinding(traceSegmenter,mergedSample,mergedTrace);
         // if there is no compound found in the trace...
-        if (traceSegments.length==0) return new AlignedFeatures[0];
+        if (pickedFeatures.traceSegmentsForMergedTrace().length==0) return new AlignedFeatures[0];
 
+        FeaturesAndSegment res = findFeaturesForTraces(mergedSample, mergedTrace, dbId, dbIsotopeIds, pickedFeatures);
+
+        // doublecheck assignment
+        /*
+        if (true){
+            Optional<TraceSegment[]> mergedSegments = checkForMergeOfNeighbouringFeatures(mergedSample, res.features, traceSegments);
+            if (mergedSegments.isPresent() && mergedSegments.get().length>0) {
+                res = findFeaturesForTraces(mergedSample, mergedTrace, dbId, dbIsotopeIds, mergedSegments.get());
+            }
+        }
+         */
+        // assign ms data
+        assignMs2(dbMapper, mergedSample, mergedTrace, res.traceSegments, res.rawSegments, res.features);
+        // assign ms1 data
+        extractMs1(dbMapper, mergedSample, mergedTrace, res.traceSegments, res.rawSegments, res.features, dbIsotopeIds);
+        // reassign charge
+        reassignCharge(res.features);
+
+        // for these annoying traces of signals that are all over the place we merge signals together if their MSMS is super similar or they both don't have msms at all
+        AlignedFeatures[] finalFeatures = res.features.length >= 6 ? mergeFeaturesWithNoProperPeakAndIdenticalMsMs(mergedSample,mergedTrace,res.features,dbMapper) : res.features;
+
+        // store feature
+        for (int i = 0; i < finalFeatures.length; i++) {
+            if (finalFeatures[i]==null) continue;
+            try {
+                if (!adapter.importAlignedFeature(finalFeatures[i])) {
+                    finalFeatures[i] = null;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return Arrays.stream(finalFeatures).filter(Objects::nonNull).toArray(AlignedFeatures[]::new);
+    }
+
+    record FeaturesAndSegment (AlignedFeatures[] features, TraceSegment[] traceSegments, TraceSegment[][] rawSegments) {
+
+    }
+
+    private @NotNull FeaturesAndSegment findFeaturesForTraces(ProcessedSample mergedSample, MergedTrace mergedTrace, MergeTraceId dbId, MergeTraceId[] dbIsotopeIds, MergedFeatureExtractionStrategy.Result pickedFeatures) {
+        /*
         TraceSegment[][] rawSegments;
         if (mergedTrace.getSamples().length == 1) {
             // do not project if samples.size == 1! -> just copy the trace segments
@@ -124,17 +174,18 @@ public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickF
                 }
             }
         }
+         */
 
         final int charge = estimateChargeFromIsotopes(mergedSample, mergedTrace);
-
+        final TraceSegment[] traceSegments = pickedFeatures.traceSegmentsForMergedTrace();
+        final TraceSegment[][] rawSegments = pickedFeatures.traceSegmentsForIndividualTraces();
         // generatate monoisotopic features for each segment
         AlignedFeatures[] features = new AlignedFeatures[traceSegments.length];
-        for (int fid=0; fid < traceSegments.length; ++fid) {
+        for (int fid = 0; fid < traceSegments.length; ++fid) {
             if (traceSegments[fid]==null) continue;
             features[fid] = new AlignedFeatures();
             features[fid].setDetectedAdducts(new DetectedAdducts());
             features[fid].setFeatures(new ArrayList<>());
-            features[fid].setTag(tag);
 
             // assign segments
             int o = mergedTrace.startId();
@@ -161,23 +212,248 @@ public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickF
                 features[fid].getFeatures().get().add(sub);
             }
         }
-        // assign ms data
-        assignMs2(dbMapper, mergedSample, mergedTrace, traceSegments, rawSegments, features);
-        // assign ms1 data
-        extractMs1(dbMapper, mergedSample, mergedTrace, traceSegments, rawSegments, features, dbIsotopeIds);
-        // reassign charge
-        reassignCharge(features);
-        // store feature
-        for (int i = 0; i < features.length; i++) {
-            if (features[i]==null) continue;
-            try {
-                if (!adapter.importAlignedFeature(features[i])) features[i] = null;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        return new FeaturesAndSegment(features, traceSegments, rawSegments);
+    }
+
+    private AlignedFeatures[] mergeFeaturesWithNoProperPeakAndIdenticalMsMs(ProcessedSample merged, MergedTrace trace, AlignedFeatures[] allFeatures, DbMapper dbMapper) {
+        List<List<AlignedFeatures>> mergedFeatures = new ArrayList<>();
+        List<AlignedFeatures> lastOne = new ArrayList<>();
+        lastOne.add(allFeatures[0]);
+        mergedFeatures.add(lastOne);
+        for (int f=1; f < allFeatures.length; ++f) {
+            AlignedFeatures left =  allFeatures[f-1];
+            AlignedFeatures right = allFeatures[f];
+
+
+            // check if both are no "real" peaks
+            // i.e. their apexes and valleys are of similar height
+            int leftApex = left.getTraceRef().absoluteApexId();
+            int rightApex = right.getTraceRef().absoluteApexId();
+            int valley = left.getTraceRef().getEnd()+left.getTraceRef().getScanIndexOffsetOfTrace();
+            int valley2 = right.getTraceRef().getStart()+right.getTraceRef().getScanIndexOffsetOfTrace();
+            // never merge if there is a gap in between
+            if (Math.abs(valley-valley2)>1) {
+                lastOne = new ArrayList<>();
+                lastOne.add(right);
+                mergedFeatures.add(lastOne);
+                continue;
+            }
+            final float leftIntensity = trace.intensity(leftApex);
+            final float rightIntensity = trace.intensity(rightApex);
+            final float valleyIntensity = (trace.intensity(valley)+trace.intensity(valley2))/2f;
+            final boolean visibleValley = (leftIntensity+rightIntensity > 3*valleyIntensity);
+            final boolean clearValley = valleyIntensity/Math.min(leftIntensity,rightIntensity) < 0.75;
+            // never merge if there is a visible apex
+            if (visibleValley&&clearValley) {
+                lastOne = new ArrayList<>();
+                lastOne.add(right);
+                mergedFeatures.add(lastOne);
+                continue;
+            }
+            // check MsMs cosine score
+            SimpleSpectrum l = left.getMSData().get().getMergedMSnSpectrum();
+            SimpleSpectrum r = right.getMSData().get().getMergedMSnSpectrum();
+            boolean merge = false;
+            if (l!=null && r!=null) {
+                CosineQueryUtils q = new CosineQueryUtils(new IntensityWeightedSpectralAlignment(new Deviation(10)));
+                SpectralSimilarity spectralSimilarity = q.cosineProduct(q.createQuery(l, left.getAverageMass()), q.createQuery(r, right.getAverageMass()));
+                if (visibleValley||clearValley) {
+                    merge = (spectralSimilarity.similarity>=0.95 || (spectralSimilarity.similarity>=0.9 && spectralSimilarity.sharedPeaks>=6));
+                } else {
+                    merge = (spectralSimilarity.similarity>=0.9 || (spectralSimilarity.similarity>=0.8 && spectralSimilarity.sharedPeaks>=6));
+                }
+            } else if (l==null && r==null) {
+                merge = true;
+            } else merge = false;
+            if (merge) {
+                lastOne.add(right);
+            } else {
+                lastOne = new ArrayList<>();
+                lastOne.add(right);
+                mergedFeatures.add(lastOne);
             }
         }
-        features = Arrays.stream(features).filter(Objects::nonNull).toArray(AlignedFeatures[]::new);
-        return features;
+        List<AlignedFeatures> result = new ArrayList<>();
+        for (List<AlignedFeatures> tomerge : mergedFeatures) {
+            if (tomerge.size()>1) {
+                result.add((AlignedFeatures)mergeNeighbouringFeatures(merged,trace,tomerge.toArray(AbstractAlignedFeatures[]::new), dbMapper));
+            } else if(!tomerge.isEmpty()){
+                result.add(tomerge.getFirst());
+            }
+        }
+        return result.toArray(AlignedFeatures[]::new);
+    }
+
+    private AbstractAlignedFeatures mergeNeighbouringFeatures(ProcessedSample mergedSample, MergedTrace trace, AbstractAlignedFeatures[] fs, DbMapper dbMapper) {
+        AbstractAlignedFeatures merged = fs[0];
+        // merge trace ref
+        {
+            int left = fs[0].getTraceRef().getStart();
+            int right = fs[fs.length-1].getTraceRef().getEnd();
+            int offset = merged.getTraceRef().getScanIndexOffsetOfTrace();
+            int apex = Arrays.stream(fs).map(x->x.getTraceRef().absoluteApexId()).max(Comparator.comparingDouble(trace::intensity)).orElse(-1) - offset;
+            merged.setTraceRef(new TraceRef(merged.getTraceRef().getTraceId(), offset, left, apex, right));
+        }
+        // merge isotopic features
+        if (merged instanceof AlignedFeatures) {
+            AlignedFeatures mf = (AlignedFeatures) merged;
+            Int2ObjectOpenHashMap<List<AlignedIsotopicFeatures>> mapByMass = new Int2ObjectOpenHashMap<>();
+            for (AbstractAlignedFeatures f : fs) {
+                for (AlignedIsotopicFeatures i : mf.getIsotopicFeatures().get()) {
+                    mapByMass.computeIfAbsent((int) (i.getAverageMass() * 100), ArrayList::new).add(i);
+                }
+            }
+            List<AlignedIsotopicFeatures> isolist = new ArrayList<>();
+            mapByMass.values().forEach(isos -> {
+                // find corresponding isotope trace
+                MergedTrace isoTrace = null;
+                for (int j = 0; j < trace.getIsotopes().length; ++j) {
+                    if (Math.abs(trace.getIsotopes()[j].averagedMz() - isos.get(0).getAverageMass()) < 0.1) {
+                        isoTrace = trace.getIsotopes()[j];
+                        break;
+                    }
+                }
+                isolist.add((AlignedIsotopicFeatures) mergeNeighbouringFeatures(mergedSample, isoTrace, isos.toArray(AbstractAlignedFeatures[]::new), dbMapper));
+            });
+            mf.setIsotopicFeatures(isolist);
+        }
+        // merge features
+        {
+            final Long2ObjectOpenHashMap<ProjectedTrace> traces = new Long2ObjectOpenHashMap<>();
+            final Long2ObjectOpenHashMap<ProcessedSample> samples = new Long2ObjectOpenHashMap<>();
+            for (ProjectedTrace t : trace.getTraces()) {
+                traces.put(dbMapper.sampleIndizes.get(t.getSampleId()), t);
+                samples.put(dbMapper.sampleIndizes.get(t.getSampleId()), dbMapper.samples.get(t.getSampleId()));
+            }
+            Long2ObjectOpenHashMap<Feature>[] sample2feature = new Long2ObjectOpenHashMap[fs.length];
+            LongOpenHashSet allRunIds = new LongOpenHashSet();
+            for (int l=0; l < fs.length; ++l) {
+                sample2feature[l] = new Long2ObjectOpenHashMap<>();
+                for (Feature f : fs[l].getFeatures().get()) {
+                    sample2feature[l].put(f.getRunId(), f);
+                    allRunIds.add(f.getRunId());
+                }
+            }
+            allRunIds.longStream().sorted().forEach(runId -> {
+                List<Feature> features = Arrays.stream(sample2feature).map(x->x.get(runId)).filter(Objects::nonNull).toList();
+                Feature tomerge = features.get(0);
+                RawTraceRef ref = mergeTraceRef(features);
+                tomerge.setTraceRef(ref);
+
+                setGenericAttributes(
+                        traces.get(runId).projected(trace.getMapping()),new TraceSegment(ref.absoluteApexId(), ref.getStart()+ref.getScanIndexOffsetOfTrace(), ref.getEnd()+ref.getScanIndexOffsetOfTrace()),
+                        ref.getRawApex(), tomerge,tomerge.getCharge(), samples.get(runId), mergedSample
+                );
+            });
+        }
+        // merge ms data
+        List<AbstractAlignedFeatures> featureWithData = Arrays.stream(fs).filter(x->x.getMSData().isPresent()).toList();
+        MSData mergedMsData = mergeMsData(featureWithData, featureWithData.stream().map(x->x.getMSData().get()).toList());
+        if (mergedMsData!=null) {
+            merged.setMsData(mergedMsData);
+            merged.setHasMs1(mergedMsData.getMergedMs1Spectrum()!=null);
+            merged.setHasMsMs(mergedMsData.getMergedMSnSpectrum()!=null);
+        }
+        // set remaining attributes
+        setGenericAttributes(trace,
+                new TraceSegment(merged.getTraceRef().absoluteApexId(), merged.getTraceRef().getStart()+merged.getTraceRef().getScanIndexOffsetOfTrace(),
+                        merged.getTraceRef().getEnd()+merged.getTraceRef().getScanIndexOffsetOfTrace()), merged.getTraceRef().absoluteApexId(), merged,
+                merged.getCharge(), mergedSample, mergedSample);
+        return merged;
+    }
+
+    private MSData mergeMsData(List<AbstractAlignedFeatures> features, List<MSData> tomerge) {
+        if (tomerge.isEmpty()) return null;
+        int bestPatternLen = 0;
+        for (MSData d : tomerge) {
+            bestPatternLen = Math.max(bestPatternLen,d.getIsotopePattern()!=null ? d.getIsotopePattern().size() : 0);
+        }
+        int best = -1;
+        for (int l=0; l < tomerge.size(); ++l) {
+            IsotopePattern iso = tomerge.get(l).getIsotopePattern();
+            if (iso!=null && iso.size()>=bestPatternLen && (best<0 || features.get(l).getApexIntensity()>features.get(best).getApexIntensity())) {
+                best=l;
+            }
+        }
+
+        List<MergedMSnSpectrum> ms2 = tomerge.stream().filter(x -> x.getMsnSpectra() != null).flatMap(x -> x.getMsnSpectra().stream()).toList();
+        MSData data = new MSData(tomerge.get(0).getAlignedFeatureId(), ms2,
+            tomerge.get(best).getIsotopePattern(),tomerge.get(best).getMergedMs1Spectrum(),ms2.isEmpty() ? null : Spectrums.getNormalizedSpectrum(Spectrums.mergeSpectra(new Deviation(10), true, false,
+                tomerge.stream().map(MSData::getMergedMSnSpectrum).filter(Objects::nonNull).toArray(SimpleSpectrum[]::new)), Normalization.Sum(1d))
+                );
+        if (data.getMergedMSnSpectrum()!=null && data.getMsnSpectra().isEmpty()) {
+            throw new RuntimeException("Empty MSMS spectrum after merging");
+        }
+        return data;
+    }
+
+    private RawTraceRef mergeTraceRef(List<Feature> features) {
+        int left = Integer.MAX_VALUE, right = Integer.MIN_VALUE, apex = 0;
+        int rleft = Integer.MAX_VALUE, rright = Integer.MIN_VALUE, rapex = 0;
+        double apexint = Float.NEGATIVE_INFINITY;
+        for (int r=0; r < features.size(); ++r) {
+            RawTraceRef R = features.get(r).getTraceReference().get();
+            left = Math.min(left,R.getStart());
+            right = Math.max(right, R.getEnd());
+            rleft = Math.min(rleft, R.getRawStart());
+            rright = Math.max(rright, R.getRawEnd());
+            if (features.get(r).getApexIntensity() > apexint) {
+                apexint = features.get(r).getApexIntensity();
+                apex = R.getApex();
+                rapex = R.getRawApex();
+            }
+        }
+        RawTraceRef ref = features.get(0).getTraceReference().get();
+        return new RawTraceRef(ref.getTraceId(), ref.getScanIndexOffsetOfTrace(), left, apex, right, rleft, rapex, rright, ref.getRawScanIndexOfset() );
+    }
+
+    private Optional<TraceSegment[]> checkForMergeOfNeighbouringFeatures(ProcessedSample sample, AlignedFeatures[] allFeatures, TraceSegment[] traceSegments) {
+        TraceSegment[] newSegments = traceSegments.clone();
+        final AlignedFeatures[] features = Arrays.stream(allFeatures).filter(x->x!=null).sorted(Comparator.comparingInt(x->x.getTraceRef().absoluteApexId())).toArray(AlignedFeatures[]::new);
+        final double allowedDeviation = sample.getStorage().getAlignmentStorage().getStatistics().getExpectedRetentionTimeDeviation()*2;
+        final ScanPointMapping mapping = sample.getMapping();
+        final Int2IntOpenHashMap feature2tracesegment = new Int2IntOpenHashMap();
+        for (int k=0; k < allFeatures.length; ++k) {
+            if (allFeatures[k]!=null) {
+                feature2tracesegment.put(allFeatures[k].getTraceRef().absoluteApexId(), k);
+            }
+        }
+        for (int k=0; k < features.length-1; ++k) {
+            final AlignedFeatures A = features[k];
+            if (A==null)
+                continue;
+            final AlignedFeatures B = features[k+1];
+            // check if both features are very close together
+            final double rtDifference = Math.abs(mapping.getRetentionTimeAt(A.getTraceRef().absoluteApexId())-mapping.getRetentionTimeAt(B.getTraceRef().absoluteApexId()));
+            if (k < features.length-2) {
+                final AlignedFeatures C = features[k+2];
+                // check if both features are very close together
+                final double rtDifference2 = Math.abs(mapping.getRetentionTimeAt(C.getTraceRef().absoluteApexId())-mapping.getRetentionTimeAt(B.getTraceRef().absoluteApexId()));
+                if (rtDifference2 < rtDifference)
+                    continue;
+            }
+
+            if (rtDifference < allowedDeviation) {
+                // check if all aligned features are completely separated
+                Set<Long> left = new HashSet<>(A.getFeatures().orElse(Collections.emptyList()).stream().map(AbstractFeature::getRunId).collect(Collectors.toList()));
+                Set<Long> right = B.getFeatures().orElse(Collections.emptyList()).stream().map(AbstractFeature::getRunId).collect(Collectors.toSet());
+                left.retainAll(right);
+                if (left.isEmpty()) {
+                    // merge features
+                    int ia = feature2tracesegment.get(A.getTraceRef().absoluteApexId());
+                    int ib = feature2tracesegment.get(B.getTraceRef().absoluteApexId());
+                    TraceSegment segmentA = traceSegments[ia];
+                    TraceSegment segmentB = traceSegments[ib];
+                    int apex = A.getApexIntensity()>B.getApexIntensity() ? segmentA.apex : segmentB.apex;
+                    newSegments[ia] = new TraceSegment(apex, Math.min(segmentA.leftEdge, segmentB.leftEdge), Math.max(segmentA.rightEdge, segmentB.rightEdge));
+                    newSegments[ib] = null;
+                    features[k+1]=null; // do not double merge
+                }
+            }
+        }
+        final TraceSegment[] allSegments = Arrays.stream(newSegments).filter(x->x!=null).toArray(TraceSegment[]::new);
+        if (allSegments.length < Arrays.stream(traceSegments).filter(x->x!=null).count()) return Optional.of(allSegments);
+        else return Optional.empty();
     }
 
     private void reassignCharge(AlignedFeatures[] features) {
@@ -209,6 +485,9 @@ public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickF
             mz = mergedTrace.getIsotopes()[k].averagedMz();
         }
         int charge = (int)Math.round(1.1/minDist);
+        if (charge==0) {
+            throw new RuntimeException("Problem with charge detection occured.");
+        }
         return charge*sample.getPolarity();
     }
 
@@ -385,6 +664,16 @@ public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickF
         feature.setRetentionTime(new RetentionTime(trace.retentionTime(segment.leftEdge), trace.retentionTime(segment.rightEdge), trace.retentionTime(segment.apex)));
         feature.setRunId(rawSample.getRun().getRunId());
         feature.setFwhm(calcFwhm(segment, trace, projectedSample.getMapping()));
+        feature.setAreaUnderCurve(calcAUC(segment, trace, projectedSample.getMapping()));
+    }
+
+    private double calcAUC(TraceSegment segment, Trace trace, ScanPointMapping mapping) {
+        double auc = 0;
+        for (int i = segment.leftEdge; i < segment.rightEdge; i++) {
+            // trapezoid equation: (f(a) + f(b)) / 2 * (b - a)
+            auc += 0.5 * (trace.intensity(i) + trace.intensity(i + 1)) * (mapping.getRetentionTimeAt(i + 1) - mapping.getRetentionTimeAt(i));
+        }
+        return auc;
     }
 
     private double calcFwhm(TraceSegment segment, Trace trace, ScanPointMapping mapping) {
@@ -466,18 +755,25 @@ public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickF
 
             MergedMSnSpectrum[] msn = new MergedMSnSpectrum[ms2Spectra.length];
             for (int k=0; k < ms2Spectra.length; ++k) {
+                final int K=k;
                 MergedSpectrum m = ms2Spectra[k];
                 int[] origSampleIds = m.getSampleIds();
                 long[] sampleIds = Arrays.stream(origSampleIds).mapToLong(idx->dbMapper.samples.get(idx).getRun().getRunId()).toArray();
                 ms2Pointers.clear();
                 for (int j=0; j < sampleIds.length; ++j) {
                     ProcessedSample smp = dbMapper.samples.get(origSampleIds[j]);
+                    final int pidx;
                     Ms2SpectrumHeader header = m.getHeaders()[j];
+                    final int roundDown = smp.getScanPointInterpolator().lowerIndex(header.getParentId());
+                    final int roundUp = smp.getScanPointInterpolator().largerIndex(header.getParentId());
+                    if (Math.abs(traceSegments[i].apex - roundDown) < Math.abs(traceSegments[i].apex - roundUp)) {
+                        pidx = roundDown;
+                    } else pidx = roundUp;
                     Ms2Pointer ms2Pointer = ms2Pointers.computeIfAbsent(sampleIds[j], idx -> new Ms2Pointer(idx, new IntArrayList(),
                             new IntArrayList(), new IntArrayList()));
                     ms2Pointer.ms2scans().add(header.getScanId());
                     ms2Pointer.rawscans().add(header.getParentId());
-                    ms2Pointer.projectedScans().add(smp.getScanPointInterpolator().roundIndex(header.getParentId()));
+                    ms2Pointer.projectedScans().add(pidx);
                 }
                 msn[k] = new MergedMSnSpectrum(m.getHeaders()[0].getMsLevel(),
                         mergedSample.getPolarity(), // TODO: what is with multiple charged compounds? Double check!!!
@@ -492,6 +788,39 @@ public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickF
                         m.getChimericPollutionRatio(),
                         new SimpleSpectrum(m)
                 );
+
+                ////////////////////
+                // double check
+                if (false) {
+                    for (int l = 0; l < msn[k].getMs2ScanIds().length; ++l) {
+                        final int L = l;
+                        int[] vec = msn[k].getProjectedPrecursorScanIds()[l];
+                        for (int scanId : vec) {
+                            int offset = feature.getTraceRef().getScanIndexOffsetOfTrace();
+                            int startId = feature.getTraceRef().getStart() + offset;
+                            int endId = feature.getTraceRef().getEnd() + offset;
+                            if (scanId < startId || scanId > endId) {
+                                LoggerFactory.getLogger(PickFeaturesAndImportToSirius.class).warn("MS2 outside of feature! mz = " + mergedTrace.averagedMz() + ", rt = " + mergedTrace.getMapping().getRetentionTimeAt(feature.getTraceRef().absoluteApexId()));
+                                if (features.length <= 3 && (scanId - endId) > 10) {
+                                    System.err.println("Gotcha!");
+                                    ms2MergeStrategy.assignMs2(mergedSample, mergedTrace, traceSegments, rawSegments);
+                                    segmentationStrategy.featureFinding(new PersistentHomology(), mergedSample, mergedTrace);
+                                }
+                                // check if that also happens for subfeatures
+                                Feature subFeature = feature.getFeatures().get().stream().filter(x -> x.getRunId() == msn[K].getSampleIds()[L]).findFirst().get();
+                                RawTraceRef ref = subFeature.getTraceReference().get();
+                                if (scanId < ref.getStart() + ref.getScanIndexOffsetOfTrace() || scanId > ref.getEnd() + ref.getScanIndexOffsetOfTrace()) {
+                                    LoggerFactory.getLogger(PickFeaturesAndImportToSirius.class).warn("MS2 also outside of its subfeature!");
+                                    if (features.length <= 3) {
+                                        System.err.println("Gotcha!");
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    ///////////////////
+                }
             }
             feature.getMSData().get().setMsnSpectra(Arrays.asList(msn));
             if (msn.length==0) return;
@@ -501,6 +830,9 @@ public class PickFeaturesAndImportToSirius implements ProjectSpaceImporter<PickF
             } else merged = msn[0].getPeaks();
             feature.getMSData().get().setMergedMSnSpectrum(Spectrums.getNormalizedSpectrum(merged, Normalization.Sum));
             feature.setHasMsMs(true);
+            if (feature.getMSData().get().getMergedMSnSpectrum()!=null && feature.getMSData().get().getMsnSpectra().isEmpty()) {
+                throw new RuntimeException("WTF?");
+            }
         }
     }
 

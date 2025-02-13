@@ -20,11 +20,12 @@
 
 package de.unijena.bioinf.ms.persistence.storage;
 
+import de.unijena.bioinf.ChemistryBase.ms.utils.Spectrums;
 import de.unijena.bioinf.ChemistryBase.utils.IOFunctions;
-import de.unijena.bioinf.ms.persistence.model.Tag;
 import de.unijena.bioinf.ms.persistence.model.core.Compound;
 import de.unijena.bioinf.ms.persistence.model.core.QualityReport;
 import de.unijena.bioinf.ms.persistence.model.core.feature.*;
+import de.unijena.bioinf.ms.persistence.model.core.networks.AdductNetwork;
 import de.unijena.bioinf.ms.persistence.model.core.run.LCMSRun;
 import de.unijena.bioinf.ms.persistence.model.core.run.MergedLCMSRun;
 import de.unijena.bioinf.ms.persistence.model.core.run.RetentionTimeAxis;
@@ -57,8 +58,6 @@ public interface MsProjectDocumentDatabase<Storage extends Database<?>> {
     static Metadata buildMetadata(@NotNull Metadata sourceMetadata) throws IOException {
         MetadataUtils.addFasUtilCollectionSupport(sourceMetadata);
         return sourceMetadata
-                .addRepository(Tag.class, Index.unique("name"))
-
                 .addRepository(LCMSRun.class,
                         Index.nonUnique("name"))
 
@@ -87,12 +86,15 @@ public interface MsProjectDocumentDatabase<Storage extends Database<?>> {
                 .addRepository(AlignedFeatures.class,
                         Index.nonUnique("compoundId"),
                         Index.nonUnique("averageMass"),
-                        Index.nonUnique("retentionTime.middle")
+                        Index.nonUnique("retentionTime.middle"),
+                        Index.nonUnique("traceRef.traceId")
                 )
 
                 .addRepository(AlignedIsotopicFeatures.class,
                         Index.nonUnique("alignedFeatureId")
                 )
+
+                .addRepository(AdductNetwork.class)
 
                 .addRepository(CorrelatedIonPair.class,
                         Index.nonUnique("alignedFeatureId1"),
@@ -135,7 +137,7 @@ public interface MsProjectDocumentDatabase<Storage extends Database<?>> {
     }
 
     default Stream<AlignedFeatures> getAllAlignedFeatures() throws IOException {
-        return getStorage().findAllStr(AlignedFeatures.class);
+        return getStorage().findAllStr(AlignedFeatures.class, "retentionTime.middle", Database.SortOrder.ASCENDING);
     }
 
     @SneakyThrows
@@ -222,6 +224,15 @@ public interface MsProjectDocumentDatabase<Storage extends Database<?>> {
 
     default void importMSData(MSData msData, long parentId) throws IOException {
         msData.setAlignedFeatureId(parentId);
+        // ensure that we do not store arbitrary large spectra (number if peaks) in out database.
+        msData.setMergedMs1Spectrum(Spectrums.extractMostIntensivePeaks(
+                msData.getMergedMs1Spectrum(), 100, 250));
+        msData.setMergedMSnSpectrum(Spectrums.extractMostIntensivePeaks(
+                msData.getMergedMSnSpectrum(), 100, 250));
+        if (msData.getMsnSpectra() != null)
+            msData.getMsnSpectra().forEach(mspec -> mspec.setPeaks(Spectrums.extractMostIntensivePeaks(
+                    mspec.getPeaks(), 100, 250)));
+
         getStorage().insert(msData);
     }
 

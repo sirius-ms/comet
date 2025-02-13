@@ -161,7 +161,7 @@ public class CustomDBOptions implements StandaloneTool<Workflow> {
         protected Boolean compute() throws Exception {
             final CdkFingerprintVersion version = ApplicationCore.WEB_API.getCDKChemDBFingerprintVersion();
             //loads all current available dbs
-            final @NotNull List<CustomDatabase> dbs = CustomDatabases.getCustomDatabases(version);
+            CustomDatabases.load(version);
 
             if (mode.importParas != null) {
                 if (mode.importParas.location == null || mode.importParas.location.isBlank()) {
@@ -258,16 +258,25 @@ public class CustomDBOptions implements StandaloneTool<Workflow> {
                 return true;
             } else if (mode.showParas != null) {
                 if (mode.showParas.db == null) {
-                    if (dbs.isEmpty()) {
+                    List<CustomDataSources.CustomSource> sources = CustomDataSources.getCustomSources();
+
+                    if (sources.isEmpty()) {
                         logWarn("\n==> No Custom database found!\n");
                         return false;
                     }
 
-                    dbs.forEach(db -> {
-                        printDBInfo(db);
+                    sources.forEach(source -> {
+                        printDBInfo(CustomDatabases.getCustomDatabaseBySource(source, version));
                         System.out.println();
                         System.out.println();
                     });
+
+                    CustomDataSources.getAllCustomDatabaseLocations().stream().filter(Files::notExists).forEach(p -> {
+                        printMissingDB(p);
+                        System.out.println();
+                        System.out.println();
+                    });
+
                     return true;
                 } else {
                     CustomDatabases.getCustomDatabase(mode.showParas.db, version)
@@ -306,6 +315,12 @@ public class CustomDBOptions implements StandaloneTool<Workflow> {
             System.out.println("Used Fingerprints: [ '" + s.getUsedFingerprints().stream().map(Enum::name).collect(Collectors.joining("','")) + "' ]");
         }
         System.out.println("###############  END  ###############");
+    }
+
+    private void printMissingDB(Path p) {
+        System.out.println("#####  Error : Missing DB file  #####");
+        System.out.println("Name: " + p.getFileName().toString().split("\\.")[0]);
+        System.out.println("Location: " + p);
     }
 
     public static void writeDBProperties() {

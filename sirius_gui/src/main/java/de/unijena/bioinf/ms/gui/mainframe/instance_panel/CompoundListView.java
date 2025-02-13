@@ -22,13 +22,13 @@ package de.unijena.bioinf.ms.gui.mainframe.instance_panel;
 import ca.odell.glazedlists.swing.DefaultEventListModel;
 import de.unijena.bioinf.ms.gui.SiriusGui;
 import de.unijena.bioinf.ms.gui.actions.SiriusActions;
+import de.unijena.bioinf.ms.gui.compute.jjobs.Jobs;
 import de.unijena.bioinf.ms.gui.utils.JListDropImage;
 import de.unijena.bioinf.projectspace.InstanceBean;
+import lombok.Getter;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+import java.awt.event.*;
 
 /**
  * @author Markus Fleischauer (markus.fleischauer@gmail.com)
@@ -37,13 +37,14 @@ public class CompoundListView extends JScrollPane {
 
     final CompoundList sourceList;
     final JListDropImage<InstanceBean> compoundListView;
+    @Getter
     final JPopupMenu expPopMenu;
 
     public CompoundListView(SiriusGui gui, CompoundList sourceList) {
-        super(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        super(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         this.sourceList = sourceList;
         //todo move texfield and filter funktion here
-        compoundListView = new JListDropImage<>(new DefaultEventListModel<>(sourceList.compoundList));
+        compoundListView = new JListDropImage<>(new DefaultEventListModel<>(sourceList.compoundList), sourceList.sortedSource::isEmpty, sourceList.compoundList::isEmpty);
         compoundListView.setSelectionModel(sourceList.compountListSelectionModel);
         compoundListView.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         compoundListView.setCellRenderer(new CompoundCellRenderer(gui));
@@ -54,7 +55,7 @@ public class CompoundListView extends JScrollPane {
                 if (e.getClickCount() == 2) {
                     // Double-click detected
                     int index = compoundListView.locationToIndex(e.getPoint());
-                    compoundListView.setSelectedIndex(index);
+                    Jobs.runEDTLater(() -> compoundListView.setSelectedIndex(index));
                     SiriusActions.COMPUTE.getInstance(gui, true)
                             .actionPerformed(new ActionEvent(compoundListView, 123, SiriusActions.COMPUTE.name()));
                 }
@@ -71,13 +72,12 @@ public class CompoundListView extends JScrollPane {
                             break;
                         }
                     }
-                    if (select) {
-                        compoundListView.setSelectedIndex(indx);
-                    }
 
-                    if (e.isPopupTrigger()) {
+                    if (select)
+                        Jobs.runEDTLater(() -> compoundListView.setSelectedIndex(indx));
+
+                    if (e.isPopupTrigger())
                         expPopMenu.show(e.getComponent(), e.getX(), e.getY());
-                    }
                 }
             }
 
@@ -100,23 +100,20 @@ public class CompoundListView extends JScrollPane {
 
         setViewportView(compoundListView);
 
-        //decorate this guy
         KeyStroke enterKey = KeyStroke.getKeyStroke("ENTER");
         compoundListView.getInputMap().put(enterKey, SiriusActions.COMPUTE.name());
 
         KeyStroke delKey = KeyStroke.getKeyStroke("DELETE");
         compoundListView.getInputMap().put(delKey, SiriusActions.DELETE_EXP.name());
 
-        SiriusActions.DELETE_EXP.getInstance(gui, true);
-        SiriusActions.COMPUTE.getInstance(gui, true);
+        ActionMap actionMap = compoundListView.getActionMap();
+        // Define and register the compute action (for Enter key)
+        actionMap.put(SiriusActions.COMPUTE.name(), SiriusActions.COMPUTE.getInstance(gui, true));
+        // Define and register the delete action (for Delete key)
+        actionMap.put(SiriusActions.DELETE_EXP.name(), SiriusActions.DELETE_EXP.getInstance(gui, true));
     }
 
     public void ensureIndexIsVisible(int index) {
         compoundListView.ensureIndexIsVisible(index);
     }
-
-    public JPopupMenu getExpPopMenu() {
-        return expPopMenu;
-    }
-
 }

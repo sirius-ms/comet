@@ -28,10 +28,12 @@ import de.unijena.bioinf.ChemistryBase.chem.utils.UnknownElementException;
 import de.unijena.bioinf.ChemistryBase.ms.*;
 import de.unijena.bioinf.ChemistryBase.ms.utils.MutableMs2SpectrumWithAdditionalFields;
 import de.unijena.bioinf.ChemistryBase.ms.utils.SimpleSpectrum;
+import de.unijena.bioinf.ChemistryBase.ms.utils.SpectrumWithAdditionalFields;
 import de.unijena.bioinf.babelms.massbank.MassbankFormat;
 import de.unijena.bioinf.jjobs.Partition;
-import de.unijena.bioinf.spectraldb.WriteableSpectralLibrary;
+import de.unijena.bioinf.spectraldb.SpectraLibraryUpdateManager;
 import de.unijena.bioinf.spectraldb.entities.Ms2ReferenceSpectrum;
+import de.unijena.bionf.fastcosine.FastCosine;
 import edu.ucdavis.fiehnlab.spectra.hash.core.SplashFactory;
 import edu.ucdavis.fiehnlab.spectra.hash.core.types.Ion;
 import edu.ucdavis.fiehnlab.spectra.hash.core.types.SpectraType;
@@ -50,11 +52,13 @@ import java.util.stream.StreamSupport;
 
 public class SpectralUtils {
 
+    private final static FastCosine fastCosine = new FastCosine();
+
     private static final Logger LOGGER = LoggerFactory.getLogger(SpectralUtils.class);
 
     private static final edu.ucdavis.fiehnlab.spectra.hash.core.Splash SPLASH_ALGO = SplashFactory.create();
 
-    public static int importSpectraFromMs2Experiments(WriteableSpectralLibrary library, Iterable<Ms2Experiment> experiments, int chunkSize) throws ChemicalDatabaseException {
+    public static int importSpectraFromMs2Experiments(SpectraLibraryUpdateManager library, Iterable<Ms2Experiment> experiments, int chunkSize) throws ChemicalDatabaseException {
         List<Ms2ReferenceSpectrum> spectra = new ArrayList<>();
         for (Ms2Experiment experiment : experiments) {
             if (!(experiment instanceof MutableMs2Experiment)) {
@@ -66,12 +70,14 @@ public class SpectralUtils {
         return importSpectra(library, spectra, chunkSize);
     }
 
-    public static int importSpectra(WriteableSpectralLibrary library, Iterable<Ms2ReferenceSpectrum> spectra, int chunkSize) throws ChemicalDatabaseException {
+    public static int importSpectra(SpectraLibraryUpdateManager library, Iterable<Ms2ReferenceSpectrum> spectra, int chunkSize) throws ChemicalDatabaseException {
         try {
             return Partition.ofSize(spectra, chunkSize).stream().mapToInt(chunk -> {
                 try {
                     List<Ms2ReferenceSpectrum> data = SpectralUtils.validateSpectra(chunk);
-                    return library.upsertSpectra(data);
+                    // add query spectrum
+                    chunk.forEach(x->x.setQuerySpectrum(fastCosine.prepareQuery(x.getPrecursorMz(), x.getSpectrum())));
+                    return library.addSpectra(data);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -92,6 +98,12 @@ public class SpectralUtils {
                     .precursorMz(s.getPrecursorMz())
                     .precursorIonType(experiment.getPrecursorIonType())
                     .spectrum(new SimpleSpectrum(s));
+
+            if (s instanceof SpectrumWithAdditionalFields<?> saf) {
+                if (saf.additionalFields().containsKey("instrument_type")) b.instrumentType(saf.additionalFields().get("instrument_type"));
+                if (saf.additionalFields().containsKey("instrument")) b.instrument(saf.additionalFields().get("instrument"));
+                if (saf.additionalFields().containsKey("ce")) b.ce(saf.additionalFields().get("ce"));
+            }
 
             experiment.getAnnotation(Splash.class).ifPresentOrElse((splash -> b.splash(splash.getSplash())), () -> {
                 final edu.ucdavis.fiehnlab.spectra.hash.core.Spectrum spectrum = new SpectrumImpl(StreamSupport.stream(s.spliterator(), false).map(peak -> new Ion(peak.getMass(), peak.getIntensity())).toList(), SpectraType.MS);

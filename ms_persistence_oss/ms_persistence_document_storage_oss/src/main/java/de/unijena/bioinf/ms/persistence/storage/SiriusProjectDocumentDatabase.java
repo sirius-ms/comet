@@ -26,12 +26,13 @@ import de.unijena.bioinf.ChemistryBase.fp.StandardFingerprintData;
 import de.unijena.bioinf.ChemistryBase.ms.Ms2Experiment;
 import de.unijena.bioinf.babelms.ms.InputFileConfig;
 import de.unijena.bioinf.chemdb.FingerprintCandidate;
+import de.unijena.bioinf.chemdb.nitrite.serializers.NitriteCompoundSerializers;
 import de.unijena.bioinf.ms.persistence.model.core.Compound;
 import de.unijena.bioinf.ms.persistence.model.core.feature.AlignedFeatures;
+import de.unijena.bioinf.ms.persistence.model.properties.ProjectType;
 import de.unijena.bioinf.ms.persistence.model.sirius.*;
 import de.unijena.bioinf.ms.persistence.model.sirius.serializers.CanopusPredictionDeserializer;
 import de.unijena.bioinf.ms.persistence.model.sirius.serializers.CsiPredictionDeserializer;
-import de.unijena.bioinf.chemdb.nitrite.serializers.NitriteCompoundSerializers;
 import de.unijena.bioinf.ms.properties.ConfigType;
 import de.unijena.bioinf.ms.properties.ParameterConfig;
 import de.unijena.bioinf.ms.properties.PropertyManager;
@@ -50,27 +51,28 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public interface SiriusProjectDocumentDatabase<Storage extends Database<?>> extends NetworkingProjectDocumentDatabase<Storage> {
+public interface SiriusProjectDocumentDatabase<Storage extends Database<?>> extends StatsAndTaggingSupport<Storage>, NetworkingProjectDocumentDatabase<Storage>, MsProjectDocumentDatabase<Storage> {
+    int SIRIUS_PROJECT_SCHEMA_VERSION = 1;
     String SIRIUS_PROJECT_SUFFIX = ".sirius";
     String FP_DATA_COLLECTION = "FP_DATA";
+    String PROJECT_PROPERTIES_COLLECTION = "PROJECT_PROPERTIES";
 
     static Metadata buildMetadata() throws IOException {
         return buildMetadata(Metadata.build());
     }
 
     static Metadata buildMetadata(@NotNull Metadata sourceMetadata) throws IOException {
-        NetworkingProjectDocumentDatabase.buildMetadata(sourceMetadata)
+        sourceMetadata
+                .schemaVersion(SIRIUS_PROJECT_SCHEMA_VERSION)
                 .addCollection(FP_DATA_COLLECTION, Index.unique("type", "charge"))
+                .addCollection(PROJECT_PROPERTIES_COLLECTION, Index.unique("key"))
 
                 .addRepository(Parameters.class, Index.unique("alignedFeatureId", "type"))
 
                 .addRepository(ComputedSubtools.class, "alignedFeatureId")
 
-                .addRepository(FormulaCandidate.class,
-                        Index.nonUnique("alignedFeatureId"),
-                        Index.nonUnique("formulaRank") //for fast sorted pages
-//                        , Index.nonUnique("molecularFormula", "adduct") // reinstert if we really need this search feature.
-                )
+                .addRepository(FormulaCandidate.class, Index.unique("alignedFeatureId", "formulaRank")) //for fast sorted pages
+
                 .addRepository(FTreeResult.class, "formulaId", Index.nonUnique("alignedFeatureId"))
 
                 .addRepository(CsiPrediction.class, "formulaId", Index.nonUnique("alignedFeatureId"))
@@ -85,16 +87,15 @@ public interface SiriusProjectDocumentDatabase<Storage extends Database<?>> exte
 
                 .addRepository(CsiStructureMatch.class,
                         Index.unique("alignedFeatureId", "formulaId", "candidateInChiKey"),
-                        Index.nonUnique("structureRank")) //for fast sorted pages
+                        Index.nonUnique("alignedFeatureId", "structureRank")) //for fast sorted pages
 
                 .addRepository(DenovoStructureMatch.class,
                         Index.unique("alignedFeatureId", "formulaId", "candidateInChiKey"),
-                        Index.nonUnique("structureRank")) //for fast sorted pages
+                        Index.nonUnique("alignedFeatureId", "structureRank")) //for fast sorted pages
 
                 .addRepository(SpectraMatch.class,
-                        Index.nonUnique("searchResult.rank"), //sort index
-                        Index.nonUnique("searchResult.candidateInChiKey"),
-                        Index.nonUnique("alignedFeatureId"))
+                        Index.nonUnique("alignedFeatureId", "searchResult.candidateInChiKey", "searchResult.rank"),
+                        Index.nonUnique("alignedFeatureId", "searchResult.rank"))
 
                 .addRepository(FingerprintCandidate.class) //pk inchiKey
                 .setOptionalFields(FingerprintCandidate.class, "fingerprint")
@@ -111,6 +112,44 @@ public interface SiriusProjectDocumentDatabase<Storage extends Database<?>> exte
     void insertFingerprintData(FingerIdData fpData, int charge);
 
     <T extends FingerprintData<?>> Optional<T> findFingerprintData(Class<T> dataClazz, int charge);
+
+    <T> Optional<T> findProjectProperty(@NotNull String key, Class<T> valueType);
+
+    default Optional<String> findProjectPropertyAsString(String key) {
+        return findProjectProperty(key, String.class);
+    }
+
+    default Optional<Double> findProjectPropertyAsDouble(@NotNull String key) {
+        return findProjectProperty(key, Double.class);
+    }
+
+    default Optional<Integer> findProjectPropertyAsInt(@NotNull String key) {
+        return findProjectProperty(key, Integer.class);
+    }
+
+    default Optional<Boolean> findProjectPropertyAsBoolean(@NotNull String key) {
+        return findProjectProperty(key, Boolean.class);
+    }
+
+    default <T extends Enum<T>> Optional<T> findProjectPropertyAsEnum(@NotNull String key, Class<T> dataClazz) {
+        return findProjectProperty(key, dataClazz);
+    }
+
+    default Optional<ProjectType> findProjectType() {
+        return findProjectProperty("projectType", ProjectType.class);
+    }
+
+    default Optional<ProjectType> upsertProjectType(@NotNull ProjectType projectType) {
+        return upsertProjectProperty("projectType", projectType);
+    }
+
+    @SneakyThrows
+    default boolean removeProjectProperty(@NotNull String key) {
+        return getStorage().removeAll(PROJECT_PROPERTIES_COLLECTION, Filter.where("key").eq(key)) > 0;
+    }
+
+
+    <T> Optional<T> upsertProjectProperty(String key, T value);
 
     @SneakyThrows
     default Optional<CsiStructureSearchResult> findCsiStructureSearchResult(long alignedFeatureId, boolean includeStructureMatches) {
@@ -178,7 +217,7 @@ public interface SiriusProjectDocumentDatabase<Storage extends Database<?>> exte
     }
 
     @SneakyThrows
-    default AlignedFeatures importMs2ExperimentAsAlignedFeature(Ms2Experiment exp) throws IOException {
+    default AlignedFeatures importMs2ExperimentAsAlignedFeature(Ms2Experiment exp) {
         AlignedFeatures alignedFeature = StorageUtils.fromMs2Experiment(exp);
 
         final FeatureGroup fg = exp.getAnnotationOrNull(FeatureGroup.class);
@@ -226,6 +265,15 @@ public interface SiriusProjectDocumentDatabase<Storage extends Database<?>> exte
         return alignedFeatures;
     }
 
+
+    @SneakyThrows
+    default <T extends StructureMatch> Optional<T> findTopStructureMatchByFeatureId(long alignedFeatureId, Class<T> clzz) {
+        return getStorage().findStr(
+                Filter.and(
+                        Filter.where("alignedFeatureId").eq(alignedFeatureId),
+                        Filter.where("structureRank").eq(1)
+                ), clzz).findFirst();
+    }
 
     default <T> Stream<T> findByFeatureIdStr(long alignedFeatureId, Class<T> clzz, String... optFields) {
         return stream(findByFeatureId(alignedFeatureId, clzz, optFields));

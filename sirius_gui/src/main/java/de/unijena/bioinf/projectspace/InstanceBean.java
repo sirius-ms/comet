@@ -35,12 +35,14 @@ import de.unijena.bioinf.ms.gui.fingerid.FingerprintCandidateBean;
 import de.unijena.bioinf.ms.gui.properties.ConfidenceDisplayMode;
 import de.unijena.bioinf.ms.gui.spectral_matching.SpectralMatchBean;
 import de.unijena.bioinf.ms.gui.spectral_matching.SpectralMatchingCache;
-import de.unijena.bioinf.ms.nightsky.sdk.NightSkyClient;
-import de.unijena.bioinf.ms.nightsky.sdk.model.*;
+import io.sirius.ms.sdk.SiriusClient;
+import io.sirius.ms.sdk.model.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.swing.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.*;
@@ -61,11 +63,12 @@ import static de.unijena.bioinf.projectspace.FormulaResultBean.ensureDefaultOptF
  * to care about Synchronization.
  */
 public class InstanceBean implements SiriusPCS {
+    private static final Logger log = LoggerFactory.getLogger(InstanceBean.class);
     private final MutableHiddenChangeSupport pcs = new MutableHiddenChangeSupport(this, true);
     private final String featureId;
-    private AlignedFeature sourceFeature;
-    private MsData msData;
-    private SpectralMatchingCache spectralMatchingCache;
+    private volatile AlignedFeature sourceFeature;
+    private volatile MsData msData;
+    private volatile SpectralMatchingCache spectralMatchingCache;
 
     @NotNull
     private final GuiProjectManager projectManager;
@@ -98,62 +101,65 @@ public class InstanceBean implements SiriusPCS {
 
     public InstanceBean(@NotNull String featureId, @Nullable AlignedFeature sourceFeature, @NotNull GuiProjectManager projectManager) {
         this.featureId = featureId;
-        this.sourceFeature = sourceFeature;
         this.projectManager = projectManager;
+        this.sourceFeature = sourceFeature;
 
-        if (sourceFeature != null)
-            assert sourceFeature.getAlignedFeatureId().equals(featureId);
+        if (this.sourceFeature == null)
+            //preload minimal information for compound list to prevent them from being loaded in EDT.
+            this.sourceFeature = projectManager.getFeature(getFeatureId(), DEFAULT_OPT_FEATURE_FIELDS);
+
         this.listener = new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
-                if (evt.getNewValue() != null && evt.getNewValue() instanceof ProjectChangeEvent pce) {
-                    if (getFeatureId().equals(pce.getFeaturedId())) {
-                        clearCache(pce);
+                if (("project.updateInstance" + getFeatureId()).equals(evt.getPropertyName())) {
+                    if (evt.getNewValue() != null) {
+                        clearCache(evt.getNewValue());
                     } else {
-                        LoggerFactory.getLogger(getClass()).warn("Event delegated with wrong feature id! Id is {} instead of {}!", pce.getFeaturedId(), getFeatureId());
+                        if (pcsEnabled.get()) //fire without invalidation, e.g. if some in memory updates happened.
+                            pcs.firePropertyChange("instance.updated", null, null);
                     }
+                } else {
+                    LoggerFactory.getLogger(getClass()).warn("Event delegated with wrong feature id! Id is {} instead of {}!", evt.getPropertyName(), getFeatureId());
                 }
             }
         };
         registerProjectSpaceListener();
     }
 
-    void clearCache() {
-        clearCache(null);
-    }
-
-    void clearCache(@Nullable ProjectChangeEvent pce) {
-        synchronized (InstanceBean.this) { //todo nighsky: check if this makes sense or if this needs to change on selection only
+    private void clearCache(@NotNull Object evt) {
+        if (SwingUtilities.isEventDispatchThread())
+            log.warn("Cache update happened in GUI thread. Might cause GUI stutters!");
+        synchronized (InstanceBean.this) {
+            InstanceBean.this.sourceFeature = projectManager.getFeature(getFeatureId(), DEFAULT_OPT_FEATURE_FIELDS);
             InstanceBean.this.spectralMatchingCache = null;
-            InstanceBean.this.sourceFeature = null;
         }
-        if (pce != null && pce.getEventType() != null) {
+        if (evt instanceof BackgroundComputationsStateEvent pce) {
+            if (pcsEnabled.get())
+                pcs.firePropertyChange("instance.updated", null, pce);
+        } else if (evt instanceof ProjectChangeEvent pce && pce.getEventType() != null) {
             switch (pce.getEventType()) {
-                case FEATURE_UPDATED -> {
-                    synchronized (InstanceBean.this) {
-                        InstanceBean.this.msData = null;
-                    }
-                    if (pcsEnabled.get())
-                        pcs.firePropertyChange("instance.updated", null, pce);
-                }
                 case RESULT_CREATED -> {
                     if (pcsEnabled.get())
-                        pcs.firePropertyChange("instance.createFormulaResult", null, pce);
+                        pcs.firePropertyChange("instance.resultCreated", null, pce);
+                }
+                case RESULT_UPDATED -> {
+                    if (pcsEnabled.get())
+                        pcs.firePropertyChange("instance.resultUpdated", null, pce);
                 }
                 case RESULT_DELETED -> {
                     if (pcsEnabled.get())
-                        pcs.firePropertyChange("instance.deleteFormulaResult", null, pce);
+                        pcs.firePropertyChange("instance.resultDeleted", null, pce);
                 }
             }
         }
     }
 
     public void registerProjectSpaceListener() {
-        projectManager.pcs.addPropertyChangeListener("project.updateInstance." + getFeatureId(), listener);
+        projectManager.pcs.addPropertyChangeListener("project.updateInstance" + getFeatureId(), listener);
     }
 
     public void unregisterProjectSpaceListener() {
-        projectManager.pcs.removePropertyChangeListener("project.updateInstance." + getFeatureId(), listener);
+        projectManager.pcs.removePropertyChangeListener("project.updateInstance" + getFeatureId(), listener);
     }
 
     public void enableProjectSpaceListener() {
@@ -164,7 +170,7 @@ public class InstanceBean implements SiriusPCS {
         pcsEnabled.set(false);
     }
 
-    public NightSkyClient getClient() {
+    public SiriusClient getClient() {
         return getProjectManager().getClient();
     }
 
@@ -183,21 +189,25 @@ public class InstanceBean implements SiriusPCS {
         return Optional.ofNullable(sourceFeature);
     }
 
+    public static final List<AlignedFeatureOptField> DEFAULT_OPT_FEATURE_FIELDS = List.of(AlignedFeatureOptField.TOPANNOTATIONS, AlignedFeatureOptField.COMPUTEDTOOLS);
     @NotNull
     public AlignedFeature getSourceFeature(@Nullable List<AlignedFeatureOptField> optFields) {
-        synchronized (this) {
-            //we always load top annotations because it contains mandatory information for the SIRIUS GUI
-            List<AlignedFeatureOptField> of = (optFields != null && !optFields.isEmpty() && !optFields.equals(List.of(AlignedFeatureOptField.NONE))
-                    ? Stream.concat(optFields.stream(), Stream.of(AlignedFeatureOptField.TOPANNOTATIONS)).distinct().toList()
-                    : List.of(AlignedFeatureOptField.TOPANNOTATIONS));
+        //we always load top annotations because it contains mandatory information for the SIRIUS GUI
+        List<AlignedFeatureOptField> of = (optFields != null && !optFields.isEmpty() && !optFields.equals(List.of(AlignedFeatureOptField.NONE))
+                ? Stream.concat(optFields.stream(), DEFAULT_OPT_FEATURE_FIELDS.stream()).distinct().toList()
+                : DEFAULT_OPT_FEATURE_FIELDS);
 
-            // we update every time here since we do not know which optional fields are already loaded.
-            if (sourceFeature == null || !of.equals(List.of(AlignedFeatureOptField.TOPANNOTATIONS)))
-                sourceFeature = withIds((pid, fid) ->
-                        getClient().features().getAlignedFeature(pid, fid, of));
-
-            return sourceFeature;
+        //double checked locking source feature must be volatile
+        if (sourceFeature == null || !of.equals(DEFAULT_OPT_FEATURE_FIELDS)) {
+            synchronized (this) {
+                // we update every time here since we do not know which optional fields are already loaded.
+                if (sourceFeature == null || !of.equals(DEFAULT_OPT_FEATURE_FIELDS))
+                    sourceFeature = withIds((pid, fid) ->
+                            getClient().features().getAlignedFeature(pid, fid, of));
+                return sourceFeature;
+            }
         }
+        return sourceFeature;
 
     }
 
@@ -219,9 +229,9 @@ public class InstanceBean implements SiriusPCS {
         return getSourceFeature().getQuality();
     }
 
-    public AlignedFeatureQuality getQualityReport() {
-        return withIds((pid, fid) -> getClient().experimental().getAlignedFeaturesQualityWithResponseSpec(pid, fid)
-                .bodyToMono(AlignedFeatureQuality.class).onErrorComplete().block());
+    public AlignedFeatureQualityExperimental getQualityReport() {
+        return withIds((pid, fid) -> getClient().features().getAlignedFeatureQualityExperimentalWithResponseSpec(pid, fid)
+                .bodyToMono(AlignedFeatureQualityExperimental.class).onErrorComplete().block());
     }
 
     public PrecursorIonType getIonType() {
@@ -236,6 +246,29 @@ public class InstanceBean implements SiriusPCS {
                 .map(PrecursorIonType::parsePrecursorIonType)
                 .flatMap(Optional::stream)
                 .filter(it -> !it.isIonizationUnknown()) //Detected adducts may contain unknown adduct by convention to indicate that they are not very confident
+                .collect(Collectors.toSet());
+    }
+
+    public Set<PrecursorIonType> getDetectedAdductsOrUnknown() {
+        @NotNull AlignedFeature f = getSourceFeature();
+        Set<PrecursorIonType> add = f.getDetectedAdducts().stream()
+                .map(PrecursorIonType::parsePrecursorIonType)
+                .flatMap(Optional::stream)
+                .filter(it -> !it.isIonizationUnknown()) //Detected adducts may contain unknown adduct by convention to indicate that they are not very confident
+                .collect(Collectors.toSet());
+        if (add.isEmpty())
+            return Set.of(PrecursorIonType.unknown(f.getCharge()));
+        return add;
+    }
+
+    public Set<PrecursorIonType> getDetectedAdductsIncludingUnknown() {
+        @NotNull AlignedFeature f = getSourceFeature();
+        if (f.getDetectedAdducts().isEmpty())
+            return Set.of(PrecursorIonType.unknown(f.getCharge()));
+
+        return f.getDetectedAdducts().stream()
+                .map(PrecursorIonType::parsePrecursorIonType)
+                .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
     }
 
@@ -256,10 +289,12 @@ public class InstanceBean implements SiriusPCS {
 
     public Optional<RetentionTime> getRT() {
         @NotNull AlignedFeature f = getSourceFeature();
-        if (f.getRtStartSeconds() != null && f.getRtEndSeconds() != null) {
+        if (f.getRtStartSeconds() != null && f.getRtEndSeconds() != null && f.getRtApexSeconds() != null) {
             if (Double.compare(f.getRtStartSeconds(), f.getRtEndSeconds()) == 0)
                 return Optional.of(new RetentionTime(f.getRtStartSeconds()));
-            return Optional.of(new RetentionTime(f.getRtStartSeconds(), f.getRtEndSeconds()));
+            return Optional.of(new RetentionTime(f.getRtStartSeconds(), f.getRtEndSeconds(), f.getRtApexSeconds()));
+        } else if (f.getRtApexSeconds() != null) {
+            return Optional.of(new RetentionTime(f.getRtApexSeconds()));
         } else if (f.getRtStartSeconds() != null) {
             return Optional.of(new RetentionTime(f.getRtStartSeconds()));
         } else if (f.getRtEndSeconds() != null) {
@@ -283,6 +318,10 @@ public class InstanceBean implements SiriusPCS {
 
     public Optional<StructureCandidateScored> getStructureAnnotation() {
         return Optional.ofNullable(getSourceFeature().getTopAnnotations()).map(FeatureAnnotations::getStructureAnnotation);
+    }
+
+    public Optional<CompoundClasses> getCompoundClassesAnnotation() {
+        return Optional.ofNullable(getSourceFeature().getTopAnnotations()).map(FeatureAnnotations::getCompoundClassAnnotation);
     }
 
     public Optional<Double> getConfidenceScore(ConfidenceDisplayMode viewMode) {
@@ -363,11 +402,11 @@ public class InstanceBean implements SiriusPCS {
         return toFingerprintCandidateBeans(getStructureCandidatesPage(topK, fp), true, false);
     }
 
-    public PageStructureCandidateFormula getStructureCandidatesPage(int topK, boolean fp) {
+    public PagedModelStructureCandidateFormula getStructureCandidatesPage(int topK, boolean fp) {
         return getStructureCandidatesPage(0, topK, fp);
     }
 
-    public PageStructureCandidateFormula getStructureCandidatesPage(int pageNum, int pageSize, boolean fp) {
+    public PagedModelStructureCandidateFormula getStructureCandidatesPage(int pageNum, int pageSize, boolean fp) {
         return withIds((pid, fid) -> getClient().features()
                 .getStructureCandidatesPaged(pid, fid, pageNum, pageSize, null,
                         fp ? List.of(StructureCandidateOptField.DBLINKS, StructureCandidateOptField.FINGERPRINT) : List.of(StructureCandidateOptField.DBLINKS)));
@@ -379,18 +418,18 @@ public class InstanceBean implements SiriusPCS {
     }
 
 
-    public PageStructureCandidateFormula getDeNovoStructureCandidatesPage(int topK, boolean fp) {
+    public PagedModelStructureCandidateFormula getDeNovoStructureCandidatesPage(int topK, boolean fp) {
         return getDeNovoStructureCandidatesPage(0, topK, fp);
     }
 
-    public PageStructureCandidateFormula getDeNovoStructureCandidatesPage(int pageNum, int pageSize, boolean fp) {
+    public PagedModelStructureCandidateFormula getDeNovoStructureCandidatesPage(int pageNum, int pageSize, boolean fp) {
         return withIds((pid, fid) -> getClient().features()
                 .getDeNovoStructureCandidatesPaged(pid, fid, pageNum, pageSize, null,
                         fp ? List.of(StructureCandidateOptField.DBLINKS, StructureCandidateOptField.FINGERPRINT) : List.of(StructureCandidateOptField.DBLINKS)));
     }
 
     @Nullable
-    private List<FingerprintCandidateBean> toFingerprintCandidateBeans(PageStructureCandidateFormula page, boolean isDatabase, boolean isDeNovo) {
+    private List<FingerprintCandidateBean> toFingerprintCandidateBeans(PagedModelStructureCandidateFormula page, boolean isDatabase, boolean isDeNovo) {
         if (page.getContent() == null)
             return null; //this does usually not happen?!
         if (page.getContent().isEmpty())
@@ -413,18 +452,37 @@ public class InstanceBean implements SiriusPCS {
         return withSpectralMatchingCache(cache -> cache.getPageFiltered(0));
     }
 
-    public synchronized MsData getMsData() {
+    public MsData getMsData() {
+        //double-checked locking, msData must be volatile
         if (msData == null) {
-            msData = sourceFeature().map(AlignedFeature::getMsData)
-                    .orElse(withIds((pid, fid) -> getClient().features().getMsData(pid, getFeatureId())));
+            synchronized (this) {
+                if (msData == null) {
+                    msData = sourceFeature().map(AlignedFeature::getMsData)
+                            .orElse(withIds((pid, fid) -> getClient().features().getMsData(pid, getFeatureId())));
+                }
+                return msData;
+            }
         }
-
         return msData;
     }
 
+
+    public Boolean hasMs1() {
+        return getSourceFeature().isHasMs1();
+    }
+
+   public Boolean hasMsMs() {
+        return getSourceFeature().isHasMsMs();
+    }
+
     private <R> R withSpectralMatchingCache(Function<SpectralMatchingCache, R> doWithCache) {
+        //double-checked locking, msData must be volatile
         if (spectralMatchingCache == null) {
-            spectralMatchingCache = new SpectralMatchingCache(this);
+            synchronized (this) {
+                if (spectralMatchingCache == null) {
+                    spectralMatchingCache = new SpectralMatchingCache(this);
+                }
+            }
         }
         return doWithCache.apply(spectralMatchingCache);
     }
@@ -445,25 +503,36 @@ public class InstanceBean implements SiriusPCS {
         return withSpectralMatchingCache(cache -> cache.getGroup(refSpecUUID));
     }
 
+    @NotNull
+    public ComputedSubtools getComputedTools() {
+        ComputedSubtools tools = getSourceFeature().getComputedTools();
+        if (tools == null) { //should not happen
+            log.warn("Computed subtools information is null for feature {}.", getFeatureId());
+            return new ComputedSubtools();
+        }
+        return tools;
+    }
+
     public MutableMs2Experiment asMs2Experiment() {
         MutableMs2Experiment exp = new MutableMs2Experiment();
         exp.setIonMass(getIonMass());
         exp.setFeatureId(getFeatureId());
         exp.setPrecursorIonType(getIonType());
-        exp.setMs1Spectra(getMsData().getMs1Spectra().stream()
+        MsData msdata = getMsData();
+        exp.setMs1Spectra(msdata.getMs1Spectra().stream()
                 .map(s -> new SimpleSpectrum(WrapperSpectrum.of(s.getPeaks(), SimplePeak::getMz, SimplePeak::getIntensity)))
                 .toList());
-        exp.setMs2Spectra(getMsData().getMs2Spectra().stream()
+        exp.setMs2Spectra(msdata.getMs2Spectra().stream()
                 .map(s -> new MutableMs2Spectrum(WrapperSpectrum.of(s.getPeaks(), SimplePeak::getMz, SimplePeak::getIntensity), s.getPrecursorMz(), CollisionEnergy.fromStringOrNull(s.getCollisionEnergy()), 2))
                 .toList());
-        Optional.ofNullable(getMsData().getMergedMs1())
+        Optional.ofNullable(msdata.getMergedMs1())
                 .map(s -> new SimpleSpectrum(WrapperSpectrum.of(s.getPeaks(), SimplePeak::getMz, SimplePeak::getIntensity)))
                 .ifPresent(exp::setMergedMs1Spectrum);
         return exp;
     }
 
 
-    //todo nightsky reenable setter
+//todo nightsky reenable setter
 
     public synchronized <R> R withIds(BiFunction<String, String, R> doWithClient) {
         return doWithClient.apply(projectManager.getProjectId(), getFeatureId());

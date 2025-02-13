@@ -1,17 +1,22 @@
 package de.unijena.bioinf.ms.gui.dialogs.asms;
 
+import de.unijena.bioinf.ChemistryBase.chem.PeriodicTable;
+import de.unijena.bioinf.ChemistryBase.chem.PrecursorIonType;
 import de.unijena.bioinf.ms.frontend.io.FileChooserPanel;
 import de.unijena.bioinf.ms.gui.utils.CompoundFilterModel;
+import de.unijena.bioinf.ms.gui.utils.GuiUtils;
 import de.unijena.bioinf.ms.gui.utils.TwoColumnPanel;
 import de.unijena.bioinf.ms.gui.utils.asms.CMLFilterModelOptions;
+import de.unijena.bioinf.ms.gui.utils.jCheckboxList.CheckBoxListItem;
+import de.unijena.bioinf.ms.gui.utils.jCheckboxList.JCheckBoxList;
+import de.unijena.bioinf.ms.gui.utils.jCheckboxList.JCheckboxListPanel;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.*;
 import java.util.List;
 
 /**
@@ -24,6 +29,7 @@ public class CMLFilterPanel extends JPanel {
     private final JTextField scaffoldMolFormulaField, fragmentTypesField;
     private final JSpinner minPeaksSpinner, numTopPeaksSpinner, ms1DevSpinner, ms2DevSpinner, numHydrogenShiftsSpinner;
     private final JCheckBox peakMatchingFilterCheckBox;
+    private final JCheckboxListPanel<PrecursorIonType> fallbackAdductsList;
 
     public CMLFilterPanel(CompoundFilterModel filterModel){
         this.filterModel = filterModel;
@@ -46,10 +52,23 @@ public class CMLFilterPanel extends JPanel {
                 params.add(libSelBox);
             }
 
-            // MS1 deviation:
+            // MS1 deviation and fallback adducts:
             {
                 this.ms1DevSpinner = new JSpinner(new SpinnerNumberModel(cmlFilterModel.getMs1Deviation(), 0, Double.POSITIVE_INFINITY, 1d));
-                params.addNamed("MS1 mass accuracy (ppm):", this.ms1DevSpinner);
+                this.fallbackAdductsList = new JCheckboxListPanel<>(
+                        new JCheckBoxList<>(PeriodicTable.getInstance().getPositiveAdducts().stream()
+                                .sorted(Comparator.comparing(PrecursorIonType::toString)).toList(), PrecursorIonType::equals),
+                        "Fallback Adducts",
+                        GuiUtils.formatToolTip("Select fallback adducts to be used if no adducts could be detected."));
+                this.fallbackAdductsList.checkBoxList.setPrototypeCellValue(new CheckBoxListItem<>(PrecursorIonType.fromString("[M + NH3 + H]+"), false));
+                this.fallbackAdductsList.checkBoxList.checkAll(cmlFilterModel.getFallbackAdducts());
+
+                Box ms1FilterBox = Box.createHorizontalBox();
+                ms1FilterBox.add(new TwoColumnPanel("MS1 mass accuracy (ppm):", this.ms1DevSpinner));
+                ms1FilterBox.add(Box.createHorizontalGlue());
+                ms1FilterBox.add(this.fallbackAdductsList);
+
+                params.add(ms1FilterBox);
             }
         }
 
@@ -125,7 +144,9 @@ public class CMLFilterPanel extends JPanel {
         final int numHydrogenShifts = this.getIntValue(this.numHydrogenShiftsSpinner);
 
         final List<String> fragmentTypes = fragmentTypesString == null ? null : Arrays.stream(fragmentTypesString.split(",")).toList();
-        CMLFilterModelOptions cmlFilterOptions = new CMLFilterModelOptions(pathToBBFile, scaffoldMf, outputPath, fragmentTypes, minMatchingPeaks,
+        final List<PrecursorIonType> fallbackAdducts = this.fallbackAdductsList.checkBoxList.getCheckedItems();
+
+        CMLFilterModelOptions cmlFilterOptions = new CMLFilterModelOptions(pathToBBFile, scaffoldMf, outputPath, fragmentTypes, fallbackAdducts, minMatchingPeaks,
                 numTopPeaks, numHydrogenShifts, ms1Dev, ms2Dev, isPeakMatchingFilterEnabled);
         filterModel.setCMLFilterOptions(cmlFilterOptions);
     }
@@ -142,6 +163,9 @@ public class CMLFilterPanel extends JPanel {
         this.ms1DevSpinner.setValue(defaultOptions.getMs1Deviation());
         this.ms2DevSpinner.setValue(defaultOptions.getMs2Deviation());
         this.peakMatchingFilterCheckBox.setSelected(defaultOptions.isPeakMatchingFilterEnabled());
+
+        this.fallbackAdductsList.checkBoxList.uncheckAll();
+        this.fallbackAdductsList.checkBoxList.checkAll(defaultOptions.getFallbackAdducts());
     }
 
     private double getDoubleValue(JSpinner spinner){

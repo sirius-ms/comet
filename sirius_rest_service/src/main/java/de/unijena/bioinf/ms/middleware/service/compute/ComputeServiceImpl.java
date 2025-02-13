@@ -23,13 +23,19 @@ package de.unijena.bioinf.ms.middleware.service.compute;
 import de.unijena.bioinf.jjobs.JJob;
 import de.unijena.bioinf.jjobs.JobProgressEvent;
 import de.unijena.bioinf.jjobs.JobStateEvent;
+import de.unijena.bioinf.jjobs.exceptions.Exceptions;
 import de.unijena.bioinf.ms.backgroundruns.BackgroundRuns;
 import de.unijena.bioinf.ms.frontend.workflow.InstanceBufferFactory;
 import de.unijena.bioinf.ms.middleware.model.compute.*;
 import de.unijena.bioinf.ms.middleware.model.events.BackgroundComputationsStateEvent;
 import de.unijena.bioinf.ms.middleware.model.events.ServerEvents;
+import de.unijena.bioinf.ms.middleware.model.projects.ImportResult;
 import de.unijena.bioinf.ms.middleware.service.events.EventService;
 import de.unijena.bioinf.ms.middleware.service.projects.Project;
+import de.unijena.bioinf.ms.persistence.model.core.statistics.AggregationType;
+import de.unijena.bioinf.ms.persistence.model.core.statistics.QuantMeasure;
+import de.unijena.bioinf.ms.persistence.storage.exceptions.ProjectStateException;
+import de.unijena.bioinf.ms.persistence.storage.exceptions.ProjectTypeException;
 import de.unijena.bioinf.projectspace.Instance;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -42,7 +48,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Slf4j
@@ -65,7 +70,7 @@ public class ComputeServiceImpl implements ComputeService {
 
     private BackgroundRuns backgroundRuns(Project<?> project) {
         return backgroundRuns.computeIfAbsent(project.getProjectId(), p -> {
-            BackgroundRuns br = new BackgroundRuns(project.getProjectSpaceManager(), instanceBufferFactory);
+            BackgroundRuns br = new BackgroundRuns(project, instanceBufferFactory);
             br.addUnfinishedRunsListener(evt -> {
                 if (evt instanceof BackgroundRuns.ChangeEvent e) {
                     eventService.sendEvent(ServerEvents.newComputeStateEvent(
@@ -88,25 +93,33 @@ public class ComputeServiceImpl implements ComputeService {
             br.cancelAllRuns();
     }
 
-    private void registerServerEventListener(BackgroundRuns.BackgroundRunJob run, String projectId) {
+    private void registerServerJobEventListener(BackgroundRuns.BackgroundRunJob run, String projectId) {
         run.addJobProgressListener(evt ->
                 eventService.sendEvent(ServerEvents.newJobEvent(
                         extractJobId(run, EnumSet.of(Job.OptField.progress)), projectId)));
     }
 
+    private void registerServerImportEventListener(BackgroundRuns.BackgroundRunJob run, String projectId) {
+        run.addPropertyChangeListener(JobStateEvent.JOB_STATE_EVENT, evt -> {
+            JJob.JobState s = ((JobStateEvent) evt).getNewValue();
+            if (s.ordinal() > JJob.JobState.RUNNING.ordinal())
+                eventService.sendEvent(ServerEvents.newImportEvent(extractJobId(run, EnumSet.of(Job.OptField.affectedIds)), projectId));
+        });
+    }
+
     @Nullable
-    private List<Instance> extractCompoundIds(@NotNull AbstractSubmission jobSubmission,
-                                              @NotNull Project<?> project) {
-        List<Instance> compounds = null;
+    private List<Instance> extractAffectedInstances(@NotNull AbstractSubmission jobSubmission,
+                                                    @NotNull Project<?> project) {
+        List<Instance> instances = null;
 
         if (jobSubmission.getCompoundIds() == null || jobSubmission.getCompoundIds().isEmpty()) {
             if (jobSubmission.getAlignedFeatureIds() != null && !jobSubmission.getAlignedFeatureIds().isEmpty()) {
-                compounds = new ArrayList<>();
+                instances = new ArrayList<>();
                 for (String cid : jobSubmission.getAlignedFeatureIds())
-                    compounds.add(loadInstance(project, cid));
+                    instances.add(loadInstance(project, cid));
             }
         } else {
-            compounds = new ArrayList<>();
+            instances = new ArrayList<>();
             Set<String> cids = new HashSet<>(jobSubmission.getCompoundIds());
             Set<String> fids = jobSubmission.getAlignedFeatureIds() != null
                     ? new HashSet<>(jobSubmission.getAlignedFeatureIds())
@@ -114,10 +127,10 @@ public class ComputeServiceImpl implements ComputeService {
 
             StreamSupport.stream(project.getProjectSpaceManager().spliterator(), false).filter(
                     instance -> instance.getCompoundId().map(cids::contains).orElse(false) || fids.contains(instance.getId())
-            ).forEach(compounds::add);
+            ).forEach(instances::add);
         }
 
-        return compounds;
+        return instances;
     }
 
     protected Job extractJobId(BackgroundRuns.BackgroundRunJob runJob, @NotNull EnumSet<Job.OptField> optFields) {
@@ -128,29 +141,26 @@ public class ComputeServiceImpl implements ComputeService {
         if (optFields.contains(Job.OptField.progress))
             id.setProgress(extractProgress(runJob));
         if (optFields.contains(Job.OptField.affectedIds)) {
-            id.setAffectedAlignedFeatureIds(extractEffectedAlignedFeatures(runJob));
-            id.setAffectedCompoundIds(extractCompoundIds(runJob));
+            id.setAffectedAlignedFeatureIds(extractAffectedAlignedFeaturesIds(runJob));
+            id.setAffectedCompoundIds(extractAffectedCompoundIds(runJob));
+            id.setJobEffect(runJob.getJobEffect());
         }
 
         return id;
     }
 
-    private static Instance loadInstance(Project<?> project, String alignedFeatureId){
+    private static Instance loadInstance(Project<?> project, String alignedFeatureId) {
         return project.getProjectSpaceManager().findInstance(alignedFeatureId).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instance with ID " + alignedFeatureId + " not found in project + " + project.getProjectId() + ".")
         );
     }
 
-    private List<String> extractEffectedAlignedFeatures(BackgroundRuns.BackgroundRunJob runJob) {
-        return runJob.getInstancesStr().map(Instance::getId).collect(Collectors.toList());
+    private List<String> extractAffectedAlignedFeaturesIds(BackgroundRuns.BackgroundRunJob runJob) {
+        return runJob.getAffectedFeatureIds();
     }
 
-    private List<String> extractCompoundIds(BackgroundRuns.BackgroundRunJob runJob) {
-        return runJob.getInstancesStr()
-                .map(Instance::getCompoundId)
-                .filter(Optional::isPresent)
-                .flatMap(Optional::stream)
-                .distinct().collect(Collectors.toList());
+    private List<String> extractAffectedCompoundIds(BackgroundRuns.BackgroundRunJob runJob) {
+        return runJob.getAffectedCompoundIds();
     }
 
     private JobProgress extractProgress(BackgroundRuns.BackgroundRunJob runJob) {
@@ -175,14 +185,15 @@ public class ComputeServiceImpl implements ComputeService {
     @Override
     public Job createAndSubmitJob(@NotNull Project<?> psmI, JobSubmission jobSubmission,
                                   @NotNull EnumSet<Job.OptField> optFields) {
-        Iterable<Instance> instances = extractCompoundIds(jobSubmission, psmI);
+        //todo maybe we should delay this to background because it might be the reason for gui freeze during job submission.
+        Iterable<Instance> instances = extractAffectedInstances(jobSubmission, psmI);
         if (instances == null)
             instances = psmI.getProjectSpaceManager();
 
         try {
             List<String> commandList = jobSubmission.asCommand();
-            BackgroundRuns.BackgroundRunJob run = backgroundRuns(psmI).runCommand(commandList, instances);
-            registerServerEventListener(run, psmI.getProjectId());
+            BackgroundRuns.BackgroundRunJob run = backgroundRuns(psmI).runCommand(commandList, instances,
+                    job -> registerServerJobEventListener(job, psmI.getProjectId()));
             return extractJobId(run, optFields);
         } catch (Exception e) {
             log.error("Cannot create Job Command!", e);
@@ -200,12 +211,13 @@ public class ComputeServiceImpl implements ComputeService {
             if (alignedFeatureIds != null) {
                 List<Instance> instances = new ArrayList<>();
                 alignedFeatureIds.forEach(id -> instances.add(loadInstance(project, id)));
-                run = backgroundRuns(project).runCommand(commandList, instances);
+                run = backgroundRuns(project).runCommand(commandList, instances,
+                        j -> registerServerJobEventListener(j, project.getProjectId()));
             } else {
-                run = backgroundRuns(project).runCommand(commandList, project.getProjectSpaceManager());
+                run = backgroundRuns(project).runCommand(commandList, project.getProjectSpaceManager(),
+                        j -> registerServerJobEventListener(j, project.getProjectId()));
             }
 
-            registerServerEventListener(run, project.getProjectId());
             return extractJobId(run, optFields);
         } catch (Exception e) {
             log.error("Cannot create Job Command!", e);
@@ -213,20 +225,71 @@ public class ComputeServiceImpl implements ComputeService {
         }
     }
 
+
     @Override
-    public Job createAndSubmitMsDataImportJob(@NotNull Project<?> project, AbstractImportSubmission importSubmission,
+    public ImportResult importPreprocessedData(@NotNull Project<?> project, AbstractImportSubmission<?> importSubmission) {
+        return awaitImportAndExtractResult(createAndSubmitPeakListImportJob(project, importSubmission));
+    }
+
+    @Override
+    public ImportResult importMsRunData(@NotNull Project<?> project, AbstractImportSubmission<?> importSubmission) {
+        return awaitImportAndExtractResult(createAndSubmitMsDataImportJob(project, importSubmission));
+    }
+
+    private ImportResult awaitImportAndExtractResult(BackgroundRuns.BackgroundRunJob run) {
+        try {
+            run.takeResult();
+            Job jobInfo = extractJobId(run, EnumSet.of(Job.OptField.affectedIds));
+            return ImportResult.builder()
+                    .affectedAlignedFeatureIds(jobInfo.getAffectedAlignedFeatureIds())
+                    .affectedCompoundIds(jobInfo.getAffectedCompoundIds())
+                    .build();
+        } catch (RuntimeException e) {
+            if (Exceptions.containsCause(e, ProjectStateException.class) || Exceptions.containsCause(e, ProjectTypeException.class))
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, Exceptions.unpack(e).getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Job createAndSubmitMsDataImportJob(@NotNull Project<?> project, AbstractImportSubmission<?> importSubmission,
                                               @NotNull EnumSet<Job.OptField> optFields) {
-        BackgroundRuns.BackgroundRunJob run = backgroundRuns(project).runImportMsData(importSubmission);
-        registerServerEventListener(run, project.getProjectId());
+        BackgroundRuns.BackgroundRunJob run = createAndSubmitMsDataImportJob(project, importSubmission);
         return extractJobId(run, optFields);
     }
 
     @Override
-    public Job createAndSubmitPeakListImportJob(@NotNull Project<?> project, AbstractImportSubmission importSubmission,
+    public Job createAndSubmitPeakListImportJob(@NotNull Project<?> project, AbstractImportSubmission<?> importSubmission,
                                                 @NotNull EnumSet<Job.OptField> optFields) {
-        BackgroundRuns.BackgroundRunJob run = backgroundRuns(project)
-                .runImportPeakData(importSubmission.asInputResource(), importSubmission.isIgnoreFormulas(), importSubmission.isAllowMs1OnlyData());
-        registerServerEventListener(run, project.getProjectId());
+        BackgroundRuns.BackgroundRunJob run = createAndSubmitPeakListImportJob(project, importSubmission);
+        return extractJobId(run, optFields);
+    }
+
+    private BackgroundRuns.BackgroundRunJob createAndSubmitMsDataImportJob(@NotNull Project<?> project, AbstractImportSubmission<?> importSubmission) {
+        return backgroundRuns(project).runImportMsData(importSubmission, job -> {
+            registerServerJobEventListener(job, project.getProjectId());
+            registerServerImportEventListener(job, project.getProjectId());
+        });
+    }
+
+    private BackgroundRuns.BackgroundRunJob createAndSubmitPeakListImportJob(@NotNull Project<?> project, AbstractImportSubmission<?> importSubmission) {
+        return backgroundRuns(project).runImportPeakData(importSubmission, job -> {
+            registerServerJobEventListener(job, project.getProjectId());
+            registerServerImportEventListener(job, project.getProjectId());
+        });
+    }
+
+    @Override
+    public Job createAndSubmitFoldChangeForBlankSubtractionJob(@NotNull Project<?> project, List<String> sampleRunIds, List<String> blankRunIds, List<String> controlRunIds, @NotNull EnumSet<Job.OptField> optFields) {
+        BackgroundRuns.BackgroundRunJob run = backgroundRuns(project).runFoldChangesForBlankSubtraction(sampleRunIds, blankRunIds, controlRunIds);
+        registerServerJobEventListener(run, project.getProjectId());
+        return extractJobId(run, optFields);
+    }
+
+    @Override
+    public Job createAndSubmitFoldChangeJob(@NotNull Project<?> project, String left, String right, AggregationType aggregation, QuantMeasure quantification, Class<?> target, @NotNull EnumSet<Job.OptField> optFields) {
+        BackgroundRuns.BackgroundRunJob run = backgroundRuns(project).runFoldChange(left, right, aggregation, quantification, target);
+        registerServerJobEventListener(run, project.getProjectId());
         return extractJobId(run, optFields);
     }
 
@@ -234,12 +297,12 @@ public class ComputeServiceImpl implements ComputeService {
     public Job createAndSubmitCommandJob(@NotNull Project<?> project, CommandSubmission commandSubmission,
                                          @NotNull EnumSet<Job.OptField> optFields) {
         BackgroundRuns br = backgroundRuns(project);
-        Iterable<Instance> instances = extractCompoundIds(commandSubmission, project);
+        Iterable<Instance> instances = extractAffectedInstances(commandSubmission, project);
         if (instances == null)
             instances = project.getProjectSpaceManager();
         try {
-            BackgroundRuns.BackgroundRunJob run = br.runCommand(commandSubmission.getCommand(), instances);
-            registerServerEventListener(run, project.getProjectId());
+            BackgroundRuns.BackgroundRunJob run = br.runCommand(commandSubmission.getCommand(), instances,
+                    j -> registerServerJobEventListener(j, project.getProjectId()));
             return extractJobId(run, optFields);
         } catch (Exception e) {
             log.error("Cannot create Job Command!", e);
@@ -339,12 +402,10 @@ public class ComputeServiceImpl implements ComputeService {
 
     @Override
     public synchronized void destroy() {
-        System.out.println("Destroy Compute Service...");
         backgroundRuns.forEach((pid, br) -> {
             if (br.hasActiveComputations())
                 log.info("Cancelling running Background Jobs...");
             br.cancelAllRuns();
         });
-        System.out.println("Destroy Compute Service DONE");
     }
 }

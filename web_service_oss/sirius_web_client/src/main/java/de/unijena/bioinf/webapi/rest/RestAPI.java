@@ -316,16 +316,17 @@ public final class RestAPI extends AbstractWebAPI<FilteredChemicalDB<RESTDatabas
             return Optional.empty();
         } catch (HttpErrorResponseException e) {
             String message = "Could not reach secured api endpoint. Bad Response Code.";
-            LoggerFactory.getLogger(getClass()).warn(message + " Cause: " + e.getMessage());
+            LoggerFactory.getLogger(getClass()).warn("{} Cause: {}", message, e.getMessage());
 
-            String[] splitMsg = e.getReasonPhrase().split(SecurityService.ERROR_CODE_SEPARATOR);
-            if (splitMsg.length > 1 && splitMsg[1].equals(SecurityService.TERMS_MISSING))
+            //todo user error types
+            String[] splitMsg = e.getReasonPhrase().split(ProblemResponse.ERROR_CODE_SEPARATOR);
+            if (splitMsg.length > 1 && splitMsg[1].equals(ProblemResponse.TERMS_MISSING))
                 return Optional.of(new ConnectionError(63, "Server detected that that Terms and Conditions and/or Privacy policy of the used subscription has not been accepted.", ConnectionError.Klass.TERMS));
 
             return Optional.of(new ConnectionError(91, message, ConnectionError.Klass.APP_SERVER, e));
         } catch (OAuthResponseException e) {
             String m = "Error when contacting login Server during application server connection.";
-            LoggerFactory.getLogger(getClass()).error(m + ": " + e.getMessage(), e);
+            LoggerFactory.getLogger(getClass()).error("{}: {}", m, e.getMessage(), e);
             return Optional.of(new ConnectionError(72, m, ConnectionError.Klass.TOKEN, e));
         } catch (Exception e) {
             return Optional.of(new ConnectionError(92, "Unexpected error when contacting secured api endpoint", ConnectionError.Klass.APP_SERVER, e));
@@ -468,10 +469,11 @@ public final class RestAPI extends AbstractWebAPI<FilteredChemicalDB<RESTDatabas
     //region FingerprintVersions
 
     /**
-     * @return The Fingerprint version used by the rest Database --  not really needed but for sanity checks
+     * @return The Fingerprint version used by the rest Database --  not really needed but for sanity checks.
+     *         Returns null if server URL is not set
      * @throws IOException if connection error happens
      */
-    public CdkFingerprintVersion getCDKChemDBFingerprintVersion() throws IOException {
+    public @Nullable CdkFingerprintVersion getCDKChemDBFingerprintVersion() throws IOException {
         return ProxyManager.applyClient(chemDBClient::getCDKFingerprintVersion);
     }
     //endregion

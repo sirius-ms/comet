@@ -35,18 +35,22 @@ import de.unijena.bioinf.datastructures.OrderedCombinatorialMoleculeLibrary;
 import de.unijena.bioinf.datastructures.Scaffold;
 import de.unijena.bioinf.io.BuildingBlockReader;
 import de.unijena.bioinf.ms.gui.SiriusGui;
+import de.unijena.bioinf.ms.gui.configs.Colors;
 import de.unijena.bioinf.ms.gui.dialogs.CompoundFilterOptionsDialog;
 import de.unijena.bioinf.ms.gui.utils.*;
+import de.unijena.bioinf.ms.gui.utils.loading.Loadable;
 import de.unijena.bioinf.ms.gui.utils.matchers.BackgroundJJobMatcheEditor;
 import de.unijena.bioinf.ms.gui.utils.toggleswitch.toggle.JToggleSwitch;
-import de.unijena.bioinf.ms.nightsky.sdk.model.DataQuality;
 import de.unijena.bioinf.projectspace.GuiProjectManager;
 import de.unijena.bioinf.projectspace.InstanceBean;
+import io.sirius.ms.sdk.model.DataQuality;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
+import java.util.Collections;
 import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
@@ -70,10 +74,13 @@ public class CompoundList {
 
     final JButton openFilterPanelButton;
     final CompoundFilterModel compoundFilterModel;
-    final ObservableElementList<InstanceBean> obsevableScource;
-    final SortedList<InstanceBean> sortedSource;
+    final ObservableElementList<InstanceBean> observableScource;
     @Getter
-    final EventList<InstanceBean> compoundList;
+    final SortedList<InstanceBean> sortedSource;
+    final FilterList<InstanceBean> filterList;
+    @Getter
+    final EventList<InstanceBean> compoundList; // wrapper for filteredList that executes events in swing edt
+
     final DefaultEventSelectionModel<InstanceBean> compountListSelectionModel;
     final BackgroundJJobMatcheEditor<InstanceBean> backgroundFilterMatcher;
     final private MatcherEditorWithOptionalInvert<InstanceBean> compoundListMatchEditor;
@@ -101,8 +108,9 @@ public class CompoundList {
         qualityToggleSwitch = makeQualityToggleSwitch(compoundFilterModel);
         msMsToggleSwitch = makeMsMsToggleSwitch(compoundFilterModel);
 
-        obsevableScource = new ObservableElementList<>(gui.getProjectManager().INSTANCE_LIST, GlazedLists.beanConnector(InstanceBean.class));
-        sortedSource = new SortedList<>(obsevableScource, Comparator.comparing(InstanceBean::getRTOrMissing));
+        observableScource = new ObservableElementList<>(gui.getProjectManager().INSTANCE_LIST, GlazedLists.beanConnector(InstanceBean.class));
+        sortedSource = new SortedList<>(observableScource, Comparator.comparing(InstanceBean::getRTOrMissing));
+        compoundFilterModel.updateAdducts(sortedSource);
 
         //filters
         BasicEventList<MatcherEditor<InstanceBean>> listOfFilters = new BasicEventList<>();
@@ -120,7 +128,7 @@ public class CompoundList {
 
         compoundListMatchEditor = new MatcherEditorWithOptionalInvert<>(compositeMatcherEditor);
         backgroundFilterMatcher = new BackgroundJJobMatcheEditor<>(compoundListMatchEditor);
-        FilterList<InstanceBean> filterList = new FilterList<>(sortedSource, backgroundFilterMatcher);
+        filterList = new FilterList<>(sortedSource, backgroundFilterMatcher);
         compoundList = GlazedListsSwing.swingThreadProxyList(filterList);
 
         //filter dialog
@@ -137,10 +145,17 @@ public class CompoundList {
         compountListSelectionModel = new DefaultEventSelectionModel<>(compoundList);
 
         compountListSelectionModel.addListSelectionListener(e -> {
+            final Component c = gui.getMainFrame().getResultsPanel().getSelectedComponent();
+            if (c instanceof Loadable l)
+                l.setLoading(true, true);
+
             if (!e.getValueIsAdjusting()) {
+                //we only enable listener for first selected because this is the one where results are visible.
                 compountListSelectionModel.getDeselected().forEach(InstanceBean::disableProjectSpaceListener);
-                compountListSelectionModel.getSelected().forEach(InstanceBean::enableProjectSpaceListener);
-                notifyListenerSelectionChange();
+                compountListSelectionModel.getSelected().stream().skip(1).forEach(InstanceBean::disableProjectSpaceListener);
+                if (!compountListSelectionModel.isSelectionEmpty())
+                    compountListSelectionModel.getSelected().getFirst().enableProjectSpaceListener();
+                notifyListenerSelectionChange(e);
             }
         });
 
@@ -149,17 +164,21 @@ public class CompoundList {
         compoundList.addListEventListener(this::notifyListenerDataChange);
 
         //init filters
-        fireFilterChanged();
+        compoundFilterModel.updateAdducts(sortedSource);
+        compoundFilterModel.fireUpdateCompleted();
     }
 
     private void colorByActiveFilter() {
         //is any filtering option active (despite the text filter which is visible all the time)
         if (isFilterInverted()) {
-            openFilterPanelButton.setBackground(new Color(235, 94, 85));
+            openFilterPanelButton.setBackground(Colors.Menu.FILTER_BUTTON_INVERTED);
+            openFilterPanelButton.setForeground(Colors.Menu.FILTER_BUTTON_INVERTED_TEXT);
         } else if (compoundFilterModel.isActive() || !searchField.getText().isEmpty()) {
-            openFilterPanelButton.setBackground(new Color(49, 153, 187));
+            openFilterPanelButton.setBackground(Colors.Menu.FILTER_BUTTON);
+            openFilterPanelButton.setForeground(Colors.Menu.FILTER_BUTTON_TEXT);
         } else {
             openFilterPanelButton.setBackground(defaultOpenFilterPanelButtonColor);
+            openFilterPanelButton.setForeground(Colors.FOREGROUND_DATA);
         }
     }
 
@@ -222,6 +241,15 @@ public class CompoundList {
         compoundListMatchEditor.setInverted(!compoundListMatchEditor.isInverted());
     }
 
+
+    /**
+     * Updates the  available filter options in the filter model.
+     * Does not cause global re-filtering
+     */
+    public void updateFilter(@NotNull java.util.List<InstanceBean> instances) {
+        compoundFilterModel.updateAdducts(instances);
+        updateTogglesByActiveFilter();
+    }
     public void resetFilter() {
         //filtering consists of the text filter, the filter model and the possible inversion using the MatcherEditor
         compoundFilterModel.resetFilter();
@@ -232,27 +260,25 @@ public class CompoundList {
         updateTogglesByActiveFilter();
     }
 
-    public void fireFilterChanged() {
-        compoundFilterModel.fireUpdateCompleted();
-    }
-
     private void notifyListenerFullListDataChange(ListEvent<InstanceBean> event) {
+        //copy event is hell important to reset the iterator
         for (ExperimentListChangeListener l : listeners) {
-            event.reset();//this is hell important to reset the iterator
-            l.fullListChanged(event, compountListSelectionModel, compoundList.size());
+            l.fullListChanged(event.copy(), compountListSelectionModel, compoundList.size());
         }
     }
 
     private void notifyListenerDataChange(ListEvent<InstanceBean> event) {
+        //copy event is hell important to reset the iterator
         for (ExperimentListChangeListener l : listeners) {
-            event.reset();//this is hell important to reset the iterator
-            l.listChanged(event, compountListSelectionModel, sortedSource.size());
+            l.listChanged(event.copy(), compountListSelectionModel, sortedSource.size());
         }
     }
 
-    private void notifyListenerSelectionChange() {
+    private void notifyListenerSelectionChange(ListSelectionEvent event) {
+        final java.util.List<InstanceBean> selected = Collections.unmodifiableList(compountListSelectionModel.getSelected());
+        final java.util.List<InstanceBean> deselected = Collections.unmodifiableList(compountListSelectionModel.getDeselected());
         for (ExperimentListChangeListener l : listeners) {
-            l.listSelectionChanged(compountListSelectionModel, sortedSource.size());
+            l.listSelectionChanged(compountListSelectionModel, selected, deselected, sortedSource.size());
         }
     }
 
@@ -269,7 +295,7 @@ public class CompoundList {
         return compountListSelectionModel;
     }
 
-    public int getFullSize(){
+    public int getFullSize() {
         return sortedSource.size();
     }
 

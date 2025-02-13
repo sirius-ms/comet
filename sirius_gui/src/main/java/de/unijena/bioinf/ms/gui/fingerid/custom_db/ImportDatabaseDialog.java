@@ -20,15 +20,15 @@
 
 package de.unijena.bioinf.ms.gui.fingerid.custom_db;
 
-import de.unijena.bioinf.jjobs.LoadingBackroundTask;
 import de.unijena.bioinf.ms.frontend.core.SiriusProperties;
 import de.unijena.bioinf.ms.gui.compute.jjobs.Jobs;
+import de.unijena.bioinf.ms.gui.compute.jjobs.LoadingBackroundTask;
 import de.unijena.bioinf.ms.gui.dialogs.QuestionDialog;
 import de.unijena.bioinf.ms.gui.dialogs.StacktraceDialog;
 import de.unijena.bioinf.ms.gui.utils.GuiUtils;
 import de.unijena.bioinf.ms.gui.utils.ReturnValue;
-import de.unijena.bioinf.ms.nightsky.sdk.jjobs.SseProgressJJob;
-import de.unijena.bioinf.ms.nightsky.sdk.model.*;
+import io.sirius.ms.sdk.jjobs.SseProgressJJob;
+import io.sirius.ms.sdk.model.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
@@ -75,6 +75,13 @@ class ImportDatabaseDialog extends JDialog {
         pack();
         setLocationRelativeTo(getOwner());
         setVisible(true);
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        if (configPanel != null)
+            configPanel.destroy();
     }
 
     protected void runImportJob() {

@@ -24,11 +24,9 @@ import de.unijena.bioinf.ms.frontend.subtools.PostprocessingTool;
 import de.unijena.bioinf.ms.frontend.subtools.Provide;
 import de.unijena.bioinf.ms.frontend.subtools.RootOptions;
 import de.unijena.bioinf.ms.frontend.subtools.StandaloneTool;
-import de.unijena.bioinf.ms.frontend.subtools.export.tables.PredictionsOptions;
 import de.unijena.bioinf.ms.frontend.workflow.Workflow;
 import de.unijena.bioinf.ms.properties.ParameterConfig;
 import lombok.Getter;
-import org.jetbrains.annotations.Nullable;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
@@ -36,23 +34,31 @@ import java.nio.file.Path;
 @CommandLine.Command(name = "summaries", aliases = {"write-summaries", "W"}, description = "@|bold <STANDALONE, POSTPROCESSING>|@ Write Summary files from a given project-space into the given project-space or a custom location. %n %n", versionProvider = Provide.Versions.class, mixinStandardHelpOptions = true, showDefaultValues = true)
 public class SummaryOptions implements PostprocessingTool<NoSqlSummarySubToolJob>, StandaloneTool<Workflow> {
 
+    public enum Format { TSV, ZIP, CSV, XLSX }
+
     //specify negated  name since default is true ->  special picocli behavior
     //https://picocli.info/#_negatable_options
     @Getter
-    @CommandLine.Option(names = {"--no-top-hit-summary"}, description = "Write project wide summary files with all Top Hits.", defaultValue = "true", negatable = true)
+    @CommandLine.Option(names = {"--no-top-hit-summary"}, description = "Write summary files with all Top Hits.", defaultValue = "true", negatable = true)
     protected boolean topHitSummary;
 
     @Getter
-    @CommandLine.Option(names = {"--top-hit-adduct-summary"}, description = "Write project wide summary files with all Top Hits and their adducts", defaultValue = "false", negatable = true)
+    @CommandLine.Option(names = {"--top-hit-adduct-summary"}, description = "Write summary files with all Top Hits and their adducts", defaultValue = "false", negatable = true)
     protected boolean topHitWithAdductsSummary;
 
     @Getter
-    @CommandLine.Option(names = {"--full-summary"}, description = {"Write project wide summary files with ALL Hits. ", "(Use with care! Might create large files and consume large amounts of memory for large projects.)"}, defaultValue = "false", negatable = true)
+    @CommandLine.Option(names = {"--full-summary"}, description = {"Write summary files with ALL Hits. ", "(Use with care! Might create large files and consume large amounts of memory for large projects.)"}, defaultValue = "false", negatable = true)
     protected boolean fullSummary;
 
     @Getter
-    @CommandLine.Option(names = {"--top-k-summary"}, description = {"Write project wide summary files with top k hits . ", "(Use with care! Using large 'k' might create large files and consume large amounts of memory for large projects.)"})
+    @CommandLine.Option(names = {"--top-k-summary"}, description = {"Write summary files with top k hits . ", "(Use with care! Using large 'k' might create large files and consume large amounts of memory for large projects.)"})
     protected int topK = -1;
+
+    @CommandLine.Option(names = {"--feature-quality-summary"}, description = "Write a summary file with feature quality metrics. One line per feature regardless of other option.", defaultValue = "false")
+    protected boolean qualitySummary;
+
+    @CommandLine.Option(names = {"--chemvista"}, description = "Export a summary file for importing structure annotations into ChemVista (always CSV and Top Hits regardless of other options).", defaultValue = "false")
+    protected boolean chemVista;
 
     //todo enable when implementing spectral match export, per compound candidate
 //    @Getter
@@ -63,22 +69,16 @@ public class SummaryOptions implements PostprocessingTool<NoSqlSummarySubToolJob
 //    @CommandLine.Option(names = {"--top-k-spectra"}, description = {"Write project wide summary files with top k reference spectrum hits . ", "(Use with care! Using large 'k' might create large files and consume large amounts of memory for large projects.)"})
 //    protected int topKSpectra = -1;
 
-    @CommandLine.Option(names = {"--output", "-o"}, description = "Specify location (outside the project) for writing summary files. Per default summaries are written to the project-space")
-    Path location;
+    @CommandLine.Option(names = {"--output", "-o"}, description = {"Specify location for writing summary files.", "By default summaries are written to a directory with project name near the project file."})
+    protected Path location;
 
-    @CommandLine.Option(names = {"--compress", "--zip", "-c"}, description = "Summaries will be written into a compressed zip archive. This parameter will be ignored if the summary is written into the project-space.")
-    boolean compress;
+    @CommandLine.Option(names = {"--format"}, description = {"Output format for summaries. Valid values: ${COMPLETION-CANDIDATES}.", "ZIP produces zipped TSV files."}, defaultValue = "tsv")
+    protected Format format;
+
+    @CommandLine.Option(names = {"--quote-strings"}, description = {"Enclose all strings in quotation marks (for TSV and CSV)."})
+    protected boolean quoteStrings;
 
 
-    @CommandLine.ArgGroup(exclusive = false, heading = "Include Predictions Table")
-    @Nullable
-    protected PredictionsOptions predictionsOptions;
-
-    public boolean isAnyPredictionOptionSet() {
-        if (predictionsOptions == null)
-            return false;
-        return predictionsOptions.isAnyPredictionSet();
-    }
 
     @Override
     public NoSqlSummarySubToolJob makePostprocessingJob() {

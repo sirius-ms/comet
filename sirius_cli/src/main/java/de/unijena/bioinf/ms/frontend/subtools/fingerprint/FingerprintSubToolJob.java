@@ -23,6 +23,7 @@ import de.unijena.bioinf.ChemistryBase.algorithm.scoring.FormulaScore;
 import de.unijena.bioinf.ChemistryBase.algorithm.scoring.SScored;
 import de.unijena.bioinf.ChemistryBase.chem.MolecularFormula;
 import de.unijena.bioinf.ChemistryBase.ms.ft.FTree;
+import de.unijena.bioinf.GibbsSampling.ZodiacScore;
 import de.unijena.bioinf.fingerid.*;
 import de.unijena.bioinf.jjobs.JobSubmitter;
 import de.unijena.bioinf.ms.frontend.core.ApplicationCore;
@@ -62,7 +63,7 @@ public class FingerprintSubToolJob extends InstanceJob {
 
         List<SScored<FTree, FormulaScore>> formulaResults = inputData.stream()
                 .filter(f -> f.hasAnnotation(FTree.class))
-                .map(FCandidate::asScoredFtree).toList();
+                .map(c -> c.asScoredFtree(inst.hasZodiacResult())).toList();
 
         Map<FTree, FCandidate<?>> treeToId = inputData.stream()
                 .filter(f -> f.hasAnnotation(FTree.class))
@@ -89,7 +90,7 @@ public class FingerprintSubToolJob extends InstanceJob {
         checkForInterruption();
 
         final @NotNull CSIPredictor csi = NetUtils.tryAndWait(() -> (CSIPredictor) ApplicationCore.WEB_API.
-                getStructurePredictor(inst.getIonType().getCharge()), this::checkForInterruption);
+                getStructurePredictor(inst.getCharge()), this::checkForInterruption);
 
         checkForInterruption();
 
@@ -126,11 +127,6 @@ public class FingerprintSubToolJob extends InstanceJob {
         //annotate FingerIdResults to FormulaResult
         inst.saveFingerprintResult(inputData);
         updateProgress(97);
-    }
-
-    @Override
-    public boolean needsProperIonizationMode() {
-        return true;
     }
 
     private Set<MolecularFormula> extractEnforcedFormulasFromSpectralLibrarySearch(Instance inst) {
