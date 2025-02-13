@@ -1,13 +1,18 @@
 package de.unijena.bioinf.ms.gui.utils.asms;
 
+import de.unijena.bioinf.ChemistryBase.chem.PrecursorIonType;
 import lombok.Getter;
 
+import javax.swing.text.html.HTMLDocument;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 public class CMLFilterModelOptions {
 
-    private static final CMLFilterModelOptions DISABLED = new CMLFilterModelOptions(null, null, null, null,2, 5, 2, 10, 10, false);
+    private static final CMLFilterModelOptions DISABLED = new CMLFilterModelOptions(null, null, null, null, Collections.singletonList(PrecursorIonType.fromString("[M+H]+")), 2, 5, 2, 10, 10, false);
 
     //Parameters for the filtering of measured combinatorial molecule libraries (Affinity selection MS):
     // io
@@ -22,14 +27,16 @@ public class CMLFilterModelOptions {
     private final double ms2Deviation;
     private final int numAllowedHydrogenShifts;
     private final boolean isPeakMatchingFilterEnabled;
+    private final List<PrecursorIonType> fallbackAdducts;
     private final List<String> fragmentTypes;
 
 
-    public CMLFilterModelOptions(String pathToBBFile, String scaffoldMf, String matchedPeaksOutputFilePath, List<String> fragmentTypes, int minMatchingPeaks, int numTopPeaks, int numAllowedHydrogenShifts, double ms1Deviation, double ms2Deviation, boolean isPeakMatchingFilterEnabled){
+    public CMLFilterModelOptions(String pathToBBFile, String scaffoldMf, String matchedPeaksOutputFilePath, List<String> fragmentTypes, List<PrecursorIonType> fallbackAdducts, int minMatchingPeaks, int numTopPeaks, int numAllowedHydrogenShifts, double ms1Deviation, double ms2Deviation, boolean isPeakMatchingFilterEnabled){
         this.pathToBBFile = pathToBBFile;
         this.scaffoldMf = scaffoldMf;
         this.matchedPeaksOutputFilePath = matchedPeaksOutputFilePath;
         this.fragmentTypes = fragmentTypes;
+        this.fallbackAdducts = fallbackAdducts;
         this.minMatchingPeaks = minMatchingPeaks;
         this.numTopPeaks = numTopPeaks;
         this.numAllowedHydrogenShifts = numAllowedHydrogenShifts;

@@ -555,6 +555,7 @@ public class CompoundFilterModel implements SiriusPCS {
 
     }
 
+    // todo: do this properly!!!!
     private class CMLOptionsChangeListener implements PropertyChangeListener {
 
         @Override

@@ -22,19 +22,13 @@ import ca.odell.glazedlists.matchers.Matcher;
 import de.unijena.bioinf.ChemistryBase.chem.MolecularFormula;
 import de.unijena.bioinf.ChemistryBase.ms.*;
 import de.unijena.bioinf.ChemistryBase.ms.Deviation;
-import de.unijena.bioinf.datastructures.BBFragment;
-import de.unijena.bioinf.datastructures.CMLMolecule;
+import de.unijena.bioinf.datastructures.*;
 import de.unijena.bioinf.sirius.Sirius;
 import de.unijena.bioinf.ChemistryBase.chem.FormulaConstraints;
 import de.unijena.bioinf.ChemistryBase.chem.PrecursorIonType;
 import de.unijena.bioinf.ChemistryBase.chem.RetentionTime;
-import de.unijena.bioinf.ChemistryBase.ms.utils.Spectrums;
-import de.unijena.bioinf.ChemistryBase.ms.utils.WrapperSpectrum;
-import de.unijena.bioinf.datastructures.CMLCandidates;
-import de.unijena.bioinf.datastructures.OrderedCombinatorialMoleculeLibrary;
 import de.unijena.bioinf.ms.gui.properties.GuiProperties;
 import de.unijena.bioinf.ms.gui.utils.asms.CMLFilterModelOptions;
-import de.unijena.bioinf.ms.properties.PropertyManager;
 import io.sirius.ms.sdk.model.*;
 import de.unijena.bioinf.projectspace.FormulaResultBean;
 import de.unijena.bioinf.projectspace.InstanceBean;
@@ -149,7 +143,8 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
         if(candidates == null) {
             final OrderedCombinatorialMoleculeLibrary cmlLibrary = filterModel.getCompoundList().getCmlLibrary();
             final CMLFilterModelOptions cmlFilterOptions = filterModel.getCmlFilterOptions();
-            candidates = new CMLCandidates(cmlLibrary, exp, cmlFilterOptions.getMs1Deviation());
+            final Deviation ms1Deviation = new Deviation(cmlFilterOptions.getMs1Deviation());
+            candidates = new CMLCandidates(cmlLibrary, exp, ms1Deviation, cmlFilterOptions.getFallbackAdducts());
             exp.setAnnotation(CMLCandidates.class, candidates);
         }
 
@@ -157,29 +152,32 @@ public class CompoundFilterMatcher implements Matcher<InstanceBean> {
     }
 
     private boolean matchesCmlMs2Filter(InstanceBean item, CompoundFilterModel filterModel) {
+        final CMLFilterModelOptions cmlFilterOptions = filterModel.getCmlFilterOptions();
+
         final Ms2Experiment exp = item.asMs2Experiment();
-        final PrecursorIonType ionType = item.getIonType().isIonizationUnknown() ? PrecursorIonType.fromString("[M+H]+") : item.getIonType();
         final List<ProcessedPeak> mergedPeaks = new Sirius().preprocessForMs2Analysis(exp).getMergedPeaks();
-        mergedPeaks.remove(mergedPeaks.size()-1); // remove the precursor peak
+        mergedPeaks.removeLast(); // remove the precursor peak
         mergedPeaks.sort(new ProcessedPeak.RelativeIntensityComparator()); // sort according to the relative intensity
 
-        final CMLFilterModelOptions cmlFilterOptions = filterModel.getCmlFilterOptions();
         final List<String> fragmentTypes = cmlFilterOptions.getFragmentTypes();
+        final Deviation ms1Deviation = new Deviation(cmlFilterOptions.getMs1Deviation());
         final Deviation ms2Deviation = new Deviation(cmlFilterOptions.getMs2Deviation());
         final int minMatchingPeaks = cmlFilterOptions.getMinMatchingPeaks();
         final int numTopPeaks = cmlFilterOptions.getNumTopPeaks();
         final int numHydrogenShifts = cmlFilterOptions.getNumAllowedHydrogenShifts();
         final double HYDROGEN_MASS = MolecularFormula.getHydrogen().getMass();
 
-        final ArrayList<CMLMolecule> candidates = exp.getAnnotation(CMLCandidates.class).orElse(new CMLCandidates(filterModel.getCompoundList().getCmlLibrary(), exp, cmlFilterOptions.getMs1Deviation())).getCandidates();
+        final CMLCandidates candidates = exp.getAnnotation(CMLCandidates.class).orElse(new CMLCandidates(filterModel.getCompoundList().getCmlLibrary(), exp, ms1Deviation, cmlFilterOptions.getFallbackAdducts()));
         final ArrayList<String> selectedOutputMatchedPeaks = new ArrayList<>();
         final int startPeakIdx = mergedPeaks.size() > numTopPeaks ? mergedPeaks.size() - numTopPeaks : 0;
         boolean foundMatchingCompound = false; // true -> there exists at least one candidate whose fragments match at least 'minMatchingPeaks'
         // (at least one candidate structure can explain 'minMatchingPeaks' in the spectrum)
 
-        for(final CMLMolecule candidate : candidates){
+        for(final CMLCandidate candidate : candidates){
             final ArrayList<String> matchedPeaksStrings = new ArrayList<>();
-            final List<BBFragment> fragments = fragmentTypes == null ? candidate.createAllBBFragments() : candidate.createSpecificBBFragments(fragmentTypes);
+            final List<BBFragment> fragments = fragmentTypes == null ? candidate.candidate().createAllBBFragments() : candidate.candidate().createSpecificBBFragments(fragmentTypes);
+            final PrecursorIonType ionType = candidate.adduct();
+
             int matchedPeaks = 0;
 
             for(int peakIdx = startPeakIdx; peakIdx < mergedPeaks.size(); peakIdx++){
