@@ -14,42 +14,47 @@ obtained from an affinity selection-mass spectrometry (AS-MS) workflow where sel
 The use case focuses mainly on combinatorial libraries where all library compounds represent distinct combinations of predefined building blocks. 
 Nevertheless, COMET can also be used in conjunction with natural product libraries as screening libraries.
 
-Currently, the SIRIUS platform is used in which ASMS-related features are integrated,
+Currently, the [SIRIUS](https://github.com/sirius-ms/sirius) platform is used in which ASMS-related features are integrated,
 e.g. excluding features (or MS/MS spectra) unrelated to compounds of the screened combinatorial library and ranking of candidate structures using EPIMETHEUS.
 
 Main developers of COMET are the [Böcker group](https://bio.informatik.uni-jena.de/) and the [Bright Giant GmbH](https://bright-giant.com)
 
-## Download Links
-
-### Documentation
+### Documentation of SIRIUS
 - [Online Documentation](https://v6.docs.sirius-ms.io/)
 - [Video tutorials](https://www.youtube.com/channel/UCIbW_ZFSADRUQ-T5nmgU4VA/featured)
 - [Bookchapter on using SIRIUS 4](https://doi.org/10.1007/978-1-0716-0239-3_11) ([Preprint](https://bio.informatik.uni-jena.de/wp/wp-content/uploads/2020/12/SIRIUS4_book_chapter_preprint-2.pdf)) -- does not cover the new LC-MS/MS processing option
 - [Demo data](data/demo.zip)
 - [Logos for publications and presentations](https://bio.informatik.uni-jena.de/software/sirius/sirius-logos/)
 
-<!--begin download-->
 
-### COMET (2024-08-11)
-##### These versions include the Java Runtime Environment, so there is no need to install Java separately! Just download, install/unpack and execute.
+
+
+### Installation and Dependencies
+COMET is available for the operating systems Windows (64bit), MacOS (64bit), and Linux (64bit) and can be installed via the fowllowing links:
+<!--begin download-->
 - for Windows (64bit): [msi](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-win64.msi) / [zip](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-win64.zip)
 - for Mac (64bit): [pkg](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-osx64.pkg) / [zip](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-osx64.zip)
 - for Linux (64bit): [zip](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-linux64.zip)
-
 <!--end download-->
 
 All (including previous) releases can be found [here](https://github.com/sirius-ms/comet/releases).
 
-### [Installation](https://v6.docs.sirius-ms.io/install)
+A typical install time should not exceed 10min which is mostly dependend on the speed of the internet connection for downloading the installation files. The installation and functionality of COMET was successfully tested on Windows 10 (x64) and on Ubuntu xx.xx (x64).
+
+##### These versions include the Java Runtime Environment, so there is no need to install Java separately! Just download, install/unpack and execute.
+
+### [Installation Instructions](https://v6.docs.sirius-ms.io/install)
 For  Windows and MacOS, the installer version of COMET (msi/pkg) should be preferred but might require administrator permissions.
-
 Since we do not pay Microsoft/Apple for certification, you might have to confirm that you want to trust "software from
-an unknown source" on Windows/MacOS when using the installers provided by the Böcker group.
-Therefore, we highly recommend using the [**signed** installers](https://github.com/bright-giant/sirius/releases) provided by
-[Bright Giant](https://bright-giant.com) (also linked above).
-These installers ease the installation process by triggering no (or less) security issues of the respective OS.
+an unknown source" on Windows/MacOS when using the .msi/.pkg installers.
 
-See the [documentation](https://v6.docs.sirius-ms.io/install) for details.
+If you choose to download the .zip file corresponding to your operating system, you have to extract that .zip file into a directry where you have writing permission, e.g. e.g. ```C:\COMET```. To start COMET, you have to execute ```sirius.exe``` in that folder.
+As COMET is currently using the SIRIUS platform, you can also chek out the [documentation](https://v6.docs.sirius-ms.io/install) for more details about the installation procedure.
+
+### Dependencies
+All installation versions of COMET include the Java Runtime Environment (JRE). Therefore, there is no need to install Java separately. 
+In case you have screened your own combinatorial molecule library where each molecule represents a combination of predefined building blocks, you have to provide a .csv file containing the building blocks of this library in order to use the COMET filter. A description of how such a .csv file looks like is given below.
+As we recommend to use our own scripts to create such a .csv file, you need to have ```python``` and ```jupyter notebook``` installed.  
 
 
 ### [Creating a user account](https://v6.docs.sirius-ms.io/account-and-license/)
