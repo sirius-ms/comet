@@ -10,7 +10,7 @@ For non-academic users, the [Bright Giant GmbH](https://bright-giant.com) provid
 We ask that users of our tools cite the corresponding papers in any resulting publications.</span>*
 
 COMET (Combinatorial Mass Encoding decoding Tool) is a java-based software framework for the analysis of LC-MS/MS data 
-obtained from an affinity selection-mass spectrometry (AS-MS) workflow where self-encoded libraries were screened. 
+obtained from an affinity selection-mass spectrometry (AS-MS) experiment where self-encoded libraries were screened. 
 The use case focuses mainly on combinatorial libraries where all library compounds represent distinct combinations of predefined building blocks. 
 Nevertheless, COMET can also be used in conjunction with natural product libraries as screening libraries.
 
@@ -26,11 +26,8 @@ Main developers of COMET are the [Böcker group](https://bio.informatik.uni-jena
 - [Demo data](data/demo.zip)
 - [Logos for publications and presentations](https://bio.informatik.uni-jena.de/software/sirius/sirius-logos/)
 
-
-
-
 ### Installation and Dependencies
-COMET is available for the operating systems Windows (64bit), MacOS (64bit), and Linux (64bit) and can be installed via the fowllowing links:
+COMET is available for Windows (64bit), MacOS (64bit), and Linux (64bit) and can be installed via the fowllowing links:
 <!--begin download-->
 - for Windows (64bit): [msi](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-win64.msi) / [zip](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-win64.zip)
 - for Mac (64bit): [pkg](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-osx64.pkg) / [zip](https://github.com/sirius-ms/comet/releases/download/v6.0.4-SNAPSHOT/sirius-6.0.4-SNAPSHOT-osx64.zip)
@@ -39,37 +36,38 @@ COMET is available for the operating systems Windows (64bit), MacOS (64bit), and
 
 All (including previous) releases can be found [here](https://github.com/sirius-ms/comet/releases).
 
-A typical install time should not exceed 10min which is mostly dependend on the speed of the internet connection for downloading the installation files. The installation and functionality of COMET was successfully tested on Windows 10 (x64) and on Ubuntu xx.xx (x64).
+A typical install time should not exceed 10min which is mostly dependend on the speed of the internet connection for downloading the installation files. The installation and functionality of COMET was successfully tested on Windows 10 (x64) and on Ubuntu 24.04.2 (x64).
 
-##### These versions include the Java Runtime Environment, so there is no need to install Java separately! Just download, install/unpack and execute.
-
-### [Installation Instructions](https://v6.docs.sirius-ms.io/install)
+#### [Installation Instructions](https://v6.docs.sirius-ms.io/install)
 For  Windows and MacOS, the installer version of COMET (msi/pkg) should be preferred but might require administrator permissions.
 Since we do not pay Microsoft/Apple for certification, you might have to confirm that you want to trust "software from
 an unknown source" on Windows/MacOS when using the .msi/.pkg installers.
 
-If you choose to download the .zip file corresponding to your operating system, you have to extract that .zip file into a directry where you have writing permission, e.g. e.g. ```C:\COMET```. To start COMET, you have to execute ```sirius.exe``` in that folder.
+If you choose to download the .zip file corresponding to your operating system, you have to extract that .zip file into a directory where you have writing permissions, e.g. ```C:\COMET```. To start COMET, you have to execute ```sirius.exe``` in that folder.
 As COMET is currently using the SIRIUS platform, you can also chek out the [documentation](https://v6.docs.sirius-ms.io/install) for more details about the installation procedure.
 
-### Dependencies
+#### Dependencies
 All installation versions of COMET include the Java Runtime Environment (JRE). Therefore, there is no need to install Java separately. 
-In case you have screened your own combinatorial molecule library where each molecule represents a combination of predefined building blocks, you have to provide a .csv file containing the building blocks of this library in order to use the COMET filter. A description of how such a .csv file looks like is given below.
-As we recommend to use our own scripts to create such a .csv file, you need to have ```python``` and ```jupyter notebook``` installed.  
+In case you have screened your own combinatorial molecule library, you have to create a .csv file containing the building blocks of this library in order to use the COMET filter. A description of how such a .csv file looks like is given below.
+As we recommend to use our own scripts to create such a .csv file, you need to have ```python```,```jupyter notebook```, and the python packages ```rdkit``` and ```pandas``` installed.
 
-
-### [Creating a user account](https://v6.docs.sirius-ms.io/account-and-license/)
-User accounts can be created directly via the SIRIUS GUI. Please, use your **institutional email address**. SIRIUS
+#### [Creating a user account](https://v6.docs.sirius-ms.io/account-and-license/)
+User accounts can be created directly via the COMET/SIRIUS GUI. Please, use your **institutional email address**. SIRIUS
 web services are free for academic/non-commercial use. Usually academic institutions are identified by their
 email domain and access will be granted automatically. In some cases, further validation of your academic/non-commercial
 may be required.
 [See also SIRIUS Documentation – Account and License](https://v6.docs.sirius-ms.io/account-and-license/).
 
-### [Sources on GitHub](https://github.com/sirius-ms)
+#### [Sources on GitHub](https://github.com/sirius-ms)
 - [SIRIUS](https://github.com/sirius-ms/sirius)
 - [SIRIUS-API Java SDK](sirius_nightsky_sdk/sirius_nightsky_sdk.openapi/README.md)
 - [SIRIUS-API SDKs](https://github.com/sirius-ms/sirius-client-openAPI)
 
-### [Changelog](https://v6.docs.sirius-ms.io/changelog/)
+#### [Changelog](https://v6.docs.sirius-ms.io/changelog/)
+
+### Usage of COMET
+#### Demo Data
+
 
 ### Integration of CSI:FingerID, CANOPUS and MSNovelist
 
@@ -111,18 +109,27 @@ command-line tool.
 <!--begin cite-->
 ## Main citations
 
+### Main citations for COMET related features
+
+Edith van der Nol, Nils Alexander Haupt, Qing Qing Gao, Benthe A.M. Smit, Martin Andre Hoffmann, Martin Engler-Lukajewski
+Marcus Ludwig, Sean McKenna, J. Miguel Mata, Olivier Bequignon, Gerard van Westen, Tiemen J. Wendel, Sylvie M. Noordermeer, Sebastian Böcker, and Sebastian Pomplun. 
+[Barcode-free hit discovery from massive libraries enabled by automated small molecule structure annotation](https://doi.org/10.26434/chemrxiv-2025-s3v2z). 
+*ChemRxiv*, 2025.
+
+### Main citations for SIRIUS related features
+
 Kai Dührkop, Markus Fleischauer, Marcus Ludwig, Alexander A. Aksenov, Alexey V. Melnik, Marvin Meusel, Pieter C. Dorrestein, Juho Rousu, and Sebastian Böcker,
 [SIRIUS 4: Turning tandem mass spectra into metabolite structure information.](https://doi.org/10.1038/s41592-019-0344-8)
 *Nature Methods* 16, 299–302, 2019.
 
 ---
 Stravs, Michael A. and Dührkop, Kai and Böcker, Sebastian and Zamboni, Nicola
-[MSNovelist: De novo structure generation from mass spectra](https://doi.org/10.1101/2021.07.06.450875)
-bioRxiv, 2021. (Cite if you are using: MSNovelist)
+[MSNovelist: de novo structure generation from mass spectra](https://doi.org/10.1038/s41592-022-01486-3)
+*Nature Methods* 19, 865–870, 2022. (Cite if you are using: MSNovelist)
 
 Martin A. Hoffmann and Louis-Félix Nothias and Marcus Ludwig and Markus Fleischauer and Emily C. Gentry and Michael Witting and Pieter C. Dorrestein and Kai Dührkop and Sebastian Böcker
-[Assigning confidence to structural annotations from mass spectra with COSMIC](https://doi.org/10.1101/2021.03.18.435634)
-bioRxiv, 2021. (Cite if you are using: *CSI:FingerID*, *COSMIC*)
+[High-confidence structural annotation of metabolites absent from spectral libraries](https://doi.org/10.1101/2021.03.18.435634)
+*Nature Biotechnology* 40, 411–421, 2022. (Cite if you are using: *CSI:FingerID*, *COSMIC*)
 
 Kai Dührkop, Louis-Félix Nothias, Markus Fleischauer, Raphael Reher, Marcus Ludwig, Martin A. Hoffmann, Daniel Petras, William H. Gerwick, Juho Rousu, Pieter C. Dorrestein and Sebastian Böcker.
 [Systematic classification of unknown metabolites using high-resolution fragmentation mass spectra.](https://doi.org/10.1038/s41587-020-0740-8)
