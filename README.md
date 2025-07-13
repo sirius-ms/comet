@@ -75,7 +75,7 @@ This [Zenodo repository](https://doi.org/10.5281/zenodo.14070388) contains the o
 
 Since each class of building block (e.g. amino acids) only occurs at a predefined position in the scaffold and this position never changes in the entire library, unique indices can be assigned to these positions. In case of this molecule library, this could be the index ```0``` for the amino acids, ```1``` for the amines and ```2``` for the aldehydes. In ```ENL161_CustomDB_BBs.csv```, you will find that each building block is assigned with such a position which is called ```bb_pos```. Additionally, this file contains for each building block its SMILES string (```smiles```), its corresponding molecular formula (```formula```), the formula of the loss when incorporated into the molecule (```reaction_loss```), and an ```id``` specifying the exact building block in its class.
 
-This is how the first lines of ```ENL161_CustomDB_BBs.csv``` look like: 
+This is how ```ENL161_CustomDB_BBs.csv``` looks like: 
 ```
 bb_pos,smiles,formula,reaction_loss,id
 0,OC([C@H](NC(OCC1c2c(c3c1cccc3)cccc2)=O)CC4CCCCC4)=O,C24H27NO4NH,C15O3H11,1
@@ -83,9 +83,16 @@ bb_pos,smiles,formula,reaction_loss,id
 0,OC([C@@H]1CSCN1C(OCC2c3c(c4c2cccc4)cccc3)=O)=O,C19H17NO4SNH,C15O3H11,3
 ...
 ```
-Let's have a look at the 2nd element in this CSV file: building block ```2``` at position ```0``` has the SMILES string ```O=C([C@@H](NC(OCC1C2=CC=CC=C2C3=CC=CC=C13)=O)C)O``` and corresponding formula ```C18H17NO4NH``` before synthesis (not incorporated into the final molecule). When incorporated into the final molecule, its molecular formula changes to ```C3H7N2O```. Therefore, ```C15O3H11``` is the molecular formula which describes this loss.
+For example, the building block ```2``` at position ```0``` has the SMILES string ```O=C([C@@H](NC(OCC1C2=CC=CC=C2C3=CC=CC=C13)=O)C)O``` and corresponding formula ```C18H17NO4NH``` before synthesis (not incorporated into the final molecule). When incorporated into the final molecule, its molecular formula changes to ```C3H7N2O```. Therefore, ```C15O3H11``` is the molecular formula which describes this loss.
 
-To create such a CSV file for your own libraries, you can use the Jupyter Notebook ```COMET_Building blocks_input.ipynb``` which is also contained in that [Zenodo repository](https://doi.org/10.5281/zenodo.14070388). As input it gets a CSV file where each column contains the SMILES strings of the building blocks.
+To create such a CSV file for your own libraries, you can use the Jupyter Notebook ```COMET_Building blocks_input.ipynb``` which is also part of that [Zenodo repository](https://doi.org/10.5281/zenodo.14070388).
+
+#### LC-MS/MS Data Import
+
+
+#### Feature Filtering with COMET
+
+#### Structure Annotation
 
 
 ### Integration of CSI:FingerID, CANOPUS and MSNovelist
